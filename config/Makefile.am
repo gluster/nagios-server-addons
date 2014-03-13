@@ -4,6 +4,7 @@ glusternagiosconf_DATA = \
 	gluster-host-groups.cfg \
 	gluster-host-services.cfg \
 	gluster-templates.cfg \
+	gluster-contacts.cfg \
         $(NULL)
 
 glusternagiosdefaultconfdir = $(sysconfdir)/nagios/gluster/default

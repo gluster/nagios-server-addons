@@ -21,6 +21,27 @@ Packaging
 The 'nagios-server-addons.spec' file demonstrates how to distribute
 this as an RPM package.
 
+Sending Notifications to Ovirt Engine
+=====================================
+
+  Nagios can be configured to send notifications to Ovirt engine to notify important nagios events.
+
+Configure the 'Ovirt' Contact defined in /etc/nagios/gluster-gluster-contacts.cfg with actual
+ovirt details.
+
+# Ovirt Engine Rest API URL
+
+_ovirt_rest_api    #http://[ovirt-engine-address]:[port]/ovirt-engine/api
+_ovirt_user        # username@domain
+
+# Ovirt password has to be configured as a user variable USER3$ in file /etc/nagios/private/resource.cfg.
+
+$USER3$ = [password for the user defined in contact 'Ovirt']
+
+User variable  $USER3$ is used in commands to pass the password to the handler. If some other variable is
+used to configure password than it has to be updated in the nagios commands 'notify-host-to-ovirt' and
+'notify-service-to-ovirt' defined in file /etc/nagios/gluster/gluster-commands.cfg
+
 
 Getting Help
 ============
