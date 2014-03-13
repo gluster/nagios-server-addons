@@ -82,6 +82,7 @@ fi
 AX_PYTHON_MODULE([argparse], [fatal])
 AX_PYTHON_MODULE([ethtool], [fatal])
 AX_PYTHON_MODULE([glusternagios], [fatal])
+AX_PYTHON_MODULE([mock], [fatal])
 AX_PYTHON_MODULE([netaddr], [fatal])
 AX_PYTHON_MODULE([pthreading], [fatal])
 AX_PYTHON_MODULE([pyinotify], [fatal])
@@ -91,7 +92,9 @@ AX_PYTHON_MODULE([selinux], [fatal])
 AC_CONFIG_FILES([
 	Makefile
 	nagios-server-addons.spec
+	config/Makefile
 	plugins/Makefile
+	templates/Makefile
 	tests/Makefile
 	tests/run_tests_local.sh
 	tests/run_tests.sh

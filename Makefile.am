@@ -20,7 +20,9 @@
 
 # keep sorted
 SUBDIRS = \
+	config \
 	plugins \
+	templates \
 	$(NULL)
 
 # The tests should be always last as they need the rest of the source to be

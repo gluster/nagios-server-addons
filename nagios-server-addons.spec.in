@@ -3,13 +3,33 @@
 %global _for_fedora_koji_builds 0
 
 %if ( 0%{?fedora} && 0%{?fedora} > 16 ) || ( 0%{?rhel} && 0%{?rhel} > 6 )
-%global           _with_systemd true
+%global _with_systemd true
+%endif
+
+%if ( 0%{?fedora} && 0%{?fedora} > 17 ) || ( 0%{?rhel} && 0%{?rhel} > 6 )
+%global _with_firewalld true
 %endif
 
 # From https://fedoraproject.org/wiki/Packaging:Python#Macros
 %if ( 0%{?rhel} && 0%{?rhel} <= 5 )
 %{!?python_sitelib: %global python_sitelib %(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %{!?python_sitearch: %global python_sitearch %(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+
+%if ( 0%{?_with_systemd:1} )
+%define _init_enable()  /bin/systemctl enable %1.service ;
+%define _init_disable() /bin/systemctl disable %1.service ;
+%define _init_restart() /bin/systemctl restart %1.service ;
+%define _init_try_restart() /bin/systemctl try-restart %1.service ;
+%define _init_stop()    /bin/systemctl stop %1.service ;
+%define _init_install() install -D -p -m 0644 %1 %{buildroot}%{_unitdir}/%2.service ;
+%else
+%define _init_enable()  /sbin/chkconfig --add %1 ;
+%define _init_disable() /sbin/chkconfig --del %1 ;
+%define _init_restart() /sbin/service %1 restart &>/dev/null ;
+%define _init_try_restart() /sbin/service %1 condrestart &>/dev/null ;
+%define _init_stop()    /sbin/service %1 stop &>/dev/null ;
+%define _init_install() install -D -p -m 0755 %1 %{buildroot}%{_sysconfdir}/init.d/%2 ;
 %endif
 
 Summary: Gluster node management add-ons for Nagios
@@ -24,15 +44,35 @@ Source0:          %{name}-%{version}.tar.gz
 BuildRoot:        %{_tmppath}/%{name}-%{version}-root
 BuildRequires:    pyflakes
 BuildRequires:    python-pep8
+BuildRequires:    python-mock
 BuildRequires:    python-nose
 BuildRequires:    python-devel
+%if ( 0%{?_with_systemd:1} )
+BuildRequires:    systemd-units
+Requires(post):   systemd-units
+%else
+Requires(post):   /sbin/service
+Requires(post):   /sbin/chkconfig
+%endif
+%if ( 0%{?_with_firewalld:1} )
+Requires(post):   firewalld
+%else
+Requires(post):   iptables
+%endif
+Requires:         check-mk-livestatus
 Requires:         gluster-nagios-common
+Requires:         httpd
+Requires:         nagios
+Requires:         nagios-plugins-nrpe
+Requires:         php
+Requires:         pnp4nagios
 Requires:         python-argparse
 Requires:         python-ethtool
 Requires:         python-netaddr
 Requires:         python-pthreading
 Requires:         python-pyinotify
 Requires:         python-selinux
+Requires:         rrdtool-perl
 
 %description
 Nagios plugin, scripts, configuration files etc for gluster nodes.
@@ -43,6 +83,7 @@ Group:            Development/Tools
 Requires:         %{name} = %{version}-%{release}
 Requires:         pyflakes
 Requires:         python-pep8
+Requires:         python-mock
 Requires:         python-nose
 Requires:         python-devel
 
@@ -66,9 +107,90 @@ make install DESTDIR=%{buildroot}
 %clean
 rm -rf %{buildroot}
 
+%post
+NagiosCFGFile="/etc/nagios/nagios.cfg"
+sed -i '/etc\/nagios\/objects\/localhost.cfg/d' $NagiosCFGFile
+
+if grep -q "#process_performance_data=0" $NagiosCFGFile; then
+  sed -i -e 's/#process_performance_data=0/process_performance_data=1/g' $NagiosCFGFile
+elif grep -q "process_performance_data=0" $NagiosCFGFile ; then
+  sed -i -e 's/process_performance_data=0/process_performance_data=1/g' $NagiosCFGFile
+fi
+
+if grep -q "#enable_environment_macros=0" $NagiosCFGFile; then
+  sed -i -e 's/#enable_environment_macros=0/enable_environment_macros=1/g' $NagiosCFGFile   
+elif grep -q "process_performance_data=0" $NagiosCFGFile ; then
+  sed -i -e 's/process_performance_data=0/process_performance_data=1/g' $NagiosCFGFile
+fi
+
+if ! grep -q "#rhs performance monitoring" $NagiosCFGFile; then
+cat >> $NagiosCFGFile <<EOF
+#rhs performance monitoring
+
+# Definitions specific to gluster
+cfg_dir=/etc/nagios/gluster
+
+service_perfdata_command=process-service-perfdata
+host_perfdata_command=process-host-perfdata
+broker_module=/usr/lib64/check_mk/livestatus.o /var/spool/nagios/cmd/live
+EOF
+fi
+
+CommandFile="/etc/nagios/objects/commands.cfg"
+if [ -f $CommandFile ]; then
+sed -i -e "/# 'process-host-perfdata' command definition/,+5d" $CommandFile
+sed -i -e "/# 'process-service-perfdata' command definition/,+5d" $CommandFile
+
+if ! grep -q "check_nrpe" $CommandFile; then
+cat >> $CommandFile <<EOF
+define command{
+       command_name check_nrpe
+       command_line \$USER1\$/check_nrpe -H \$HOSTADDRESS\$ -c \$ARG1\$
+}
+EOF
+fi
+
+if ! grep -q "gluster nagios template" $CommandFile; then
+cat >> $CommandFile <<EOF
+
+### gluster nagios template ###
+define command {
+       command_name    process-service-perfdata
+       command_line    /usr/bin/perl /usr/libexec/pnp4nagios/process_perfdata.pl
+}
+
+define command {
+       command_name    process-host-perfdata
+       command_line    /usr/bin/perl /usr/libexec/pnp4nagios/process_perfdata.pl -d HOSTPERFDATA
+}
+
+EOF
+fi
+fi
+
+%if ( 0%{?_with_firewalld:1} )
+/bin/firewall-cmd --permanent --add-port=80/tcp
+/bin/firewall-cmd --add-port=80/tcp
+%else
+/sbin/iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+/sbin/service iptables save
+%_init_restart iptables
+%endif
+
+%_init_enable nagios
+%_init_enable httpd
+%_init_restart nagios
+%_init_restart httpd
+
 %files
 %defattr(-,root,root,-)
-%{_libdir}/nagios/*
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_cpu_multicore.php
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_disk_and_inode.php
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_interfaces.php
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_memory.php
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_swap_usage.php
+%{_libdir}/nagios/plugins/gluster/*
+%{_sysconfdir}/nagios/gluster/*
 
 %files tests
 %defattr(-,root,root,-)

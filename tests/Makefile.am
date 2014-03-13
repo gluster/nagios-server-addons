@@ -19,6 +19,7 @@
 #
 
 test_modules = \
+	test_check_remote_host.py \
 	$(NULL)
 
 dist_nagiosserveraddonstests_DATA = \
