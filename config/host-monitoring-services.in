@@ -1,0 +1,8 @@
+{serviceList: [
+                'Cpu Utilization',
+                'Disk Utilization',
+                'Memory Utilization',
+                'Network Utilization',
+                'Swap Utilization',
+              ]
+}

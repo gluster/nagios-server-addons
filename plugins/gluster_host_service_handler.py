@@ -23,8 +23,9 @@
 import os
 import sys
 import datetime
-import socket
 import getopt
+
+import livestatus
 
 STATUS_OK = "OK"
 STATUS_WARNING = "WARNING"
@@ -37,14 +38,15 @@ statusCodes = {STATUS_OK: 0, STATUS_WARNING: 1, STATUS_CRITICAL: 2,
 NAGIOS_COMMAND_FILE = "/var/spool/nagios/cmd/nagios.cmd"
 SRVC_LIST = ['Disk Utilization', 'Cpu Utilization', 'Memory Utilization',
              'Swap Utilization', 'Network Utilization']
-_socketPath = '/var/spool/nagios/cmd/live'
 
 
 # Shows the usage of the script
 def showUsage():
-    usage = "Usage: %s -s <Service State (OK/WARNING/CRITICAL/UNKNOWN)> "
-    "-t <Service State Type (SOFT/HARD)> -a <No of Service attempts> "
-    "-l <Host Address> -n <Service Name>\n" % os.path.basename(sys.argv[0])
+    usage = "Usage: %s -s <Service State (OK/WARNING/CRITICAL/UNKNOWN)> " \
+            "-t <Service State Type (SOFT/HARD)>" \
+            " -a <No of Service attempts> " \
+            "-l <Host Address>" \
+            " -n <Service Name>\n" % os.path.basename(sys.argv[0])
     sys.stderr.write(usage)
 
 
@@ -52,12 +54,13 @@ def showUsage():
 def update_host_state(hostAddr, srvcName, statusCode):
     now = datetime.datetime.now()
     if statusCode == statusCodes[STATUS_WARNING]:
-        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;Host Status WARNING - "
-        "Service(s) ['%s'] in CRITICAL state\n" % (now, hostAddr, statusCode,
-                                                   srvcName)
+        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;" \
+                 "Host Status WARNING - " \
+                 "Service(s) ['%s'] in CRITICAL state\n" \
+                 % (now, hostAddr, statusCode, srvcName)
     else:
-        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;Host Status OK - "
-        "Services in good health\n" % (now, hostAddr, statusCode)
+        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;Host Status OK - " \
+                 "Services in good health\n" % (now, hostAddr, statusCode)
 
     f = open(NAGIOS_COMMAND_FILE, "w")
     f.write(cmdStr)
@@ -66,22 +69,10 @@ def update_host_state(hostAddr, srvcName, statusCode):
 
 # Method to execute livestatus
 def checkLiveStatus(hostAddr, srvc):
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(_socketPath)
+    cmd = "GET services\nColumns: state\nFilter: " \
+          "description = %s\nFilter: host_address = %s" % (srvc, hostAddr)
 
-    # Write command to socket
-    cmd = "GET services\nColumns: state\nFilter: "
-    "description = %s\nFilter: host_address = %s\n" % (srvc, hostAddr)
-    s.send(cmd)
-
-    # Close socket
-    s.shutdown(socket.SHUT_WR)
-
-    # Read the answer
-    answer = s.recv(1000)
-
-    # Parse the answer into a table
-    table = [line.split(';') for line in answer.split('\n')[:-1]]
+    table = livestatus.readLiveStatus(cmd)
 
     if len(table) > 0 and len(table[0]) > 0:
         return int(table[0][0])
@@ -141,8 +132,8 @@ if __name__ == "__main__":
     if srvcState == STATUS_CRITICAL:
         if srvcStateType == SRVC_STATE_TYPE_SOFT:
             if int(attempts) == 3:
-                print "Updating the host status to warning "
-                "(3rd SOFT critical state)..."
+                print "Updating the host status to warning " \
+                      "(3rd SOFT critical state)..."
                 update_host_state(hostAddr, srvcName,
                                   statusCodes[STATUS_WARNING])
         elif srvcStateType == SRVC_STATE_TYPE_HARD:

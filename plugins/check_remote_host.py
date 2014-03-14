@@ -2,13 +2,13 @@
 #
 # check_remote_host.py -- nagios plugin uses Mklivestatus to get the overall
 #                         status
-# of a host. The entities considered for the status of the host are -
-# 	1. Host is reachable
-# 	2. LV/Inode Service status
-#	3. CPU Utilization
-#	4. Memory Utilization
-#	5. Network Utilization
-#	6. Swap Utilization
+# of a host. The services considered by default for the status of the host
+# are -
+# 	1. LV/Inode Service status
+#	2. CPU Utilization
+#	3. Memory Utilization
+#	4. Network Utilization
+#	5. Swap Utilization
 #
 # Copyright (C) 2014 Red Hat Inc
 #
@@ -29,90 +29,35 @@
 
 import os
 import sys
-import shlex
-import subprocess
-import socket
 import getopt
+#import socket
+import json
+
+import livestatus
 
 STATUS_OK = 0
 STATUS_WARNING = 1
 STATUS_CRITICAL = 2
 STATUS_UNKNOWN = 3
-_checkPingCommand = "/usr/lib64/nagios/plugins/check_ping"
 _commandStatusStrs = {STATUS_OK: 'OK', STATUS_WARNING: 'WARNING',
                       STATUS_CRITICAL: 'CRITICAL', STATUS_UNKNOWN: 'UNKNOWN'}
-_socketPath = '/var/spool/nagios/cmd/live'
 
 
-# Class for exception definition
-class checkPingCmdExecFailedException(Exception):
-    message = "check_ping command failed"
-
-    def __init__(self, rc=0, out=(), err=()):
-        self.rc = rc
-        self.out = out
-        self.err = err
-
-    def __str__(self):
-        o = '\n'.join(self.out)
-        e = '\n'.join(self.err)
-        if o and e:
-            m = o + '\n' + e
-        else:
-            m = o or e
-
-        s = self.message
-        if m:
-            s += '\nerror: ' + m
-        if self.rc:
-            s += '\nreturn code: %s' % self.rc
-        return s
-
-
-# Method to execute a command
-def execCmd(command):
-    proc = subprocess.Popen(command,
-                            close_fds=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    (out, err) = proc.communicate()
-    return (proc.returncode, out, err)
-
-
-# Method to check the ing status of the host
-def getPingStatus(hostAddr):
-    cmd = "%s -H %s" % (_checkPingCommand, hostAddr)
-    cmd += " -w 3000.0,80% -c 5000.0,100%"
-
-    try:
-        (rc, out, err) = execCmd(shlex.split(cmd))
-    except (OSError, ValueError) as e:
-        raise checkPingCmdExecFailedException(err=[str(e)])
-
-    if rc != 0:
-        raise checkPingCmdExecFailedException(rc, [out], [err])
-
-    return rc
+# Load the host monitoring services list
+def loadSrvcList():
+    srvc_list = []
+    with open("/etc/nagios/gluster/host-monitoring-services.in") as data_file:
+        srvc_list = json.load(data_file)['serviceList']
+    return srvc_list
 
 
 # Method to execute livestatus
 def checkLiveStatus(hostAddr, srvc):
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(_socketPath)
+    cmd = "GET services\nColumns: state\nFilter: " \
+          "description = %s\n" \
+          "Filter: host_address = %s" % (srvc, hostAddr)
 
-    # Write command to socket
-    cmd = "GET services\nColumns: state\nFilter: "
-    "description = %s\nFilter: host_address = %s\n" % (srvc, hostAddr)
-    s.send(cmd)
-
-    # Close socket
-    s.shutdown(socket.SHUT_WR)
-
-    # Read the answer
-    answer = s.recv(1000000)
-
-    # Parse the answer into a table
-    table = [line.split(';') for line in answer.split('\n')[:-1]]
+    table = livestatus.readLiveStatus(cmd)
 
     if len(table) > 0 and len(table[0]) > 0:
         return int(table[0][0])
@@ -150,43 +95,18 @@ if __name__ == "__main__":
                 showUsage()
                 sys.exit(STATUS_CRITICAL)
 
-    # Check ping status of the node, if its not reachable exit
-    try:
-        pingStatus = getPingStatus(hostAddr)
-    except (checkPingCmdExecFailedException) as e:
-        print "Host Status %s - Host not reachable" % \
-            (_commandStatusStrs[STATUS_UNKNOWN])
-        sys.exit(_commandStatusStrs[STATUS_UNKNOWN])
+    # Load the services list
+    srvc_list = loadSrvcList()
 
-    if pingStatus != STATUS_OK:
-        print "Host Status %s - Host not reachable" % \
-            (_commandStatusStrs[STATUS_UNKNOWN])
-        sys.exit(pingStatus)
-
-    # Check the various performance statuses for the host
-    diskPerfStatus = checkLiveStatus(hostAddr, 'Disk Utilization')
-    cpuPerfStatus = checkLiveStatus(hostAddr, 'Cpu Utilization')
-    memPerfStatus = checkLiveStatus(hostAddr, 'Memory Utilization')
-    swapPerfStatus = checkLiveStatus(hostAddr, 'Swap Utilization')
-    nwPerfStatus = checkLiveStatus(hostAddr, 'Network Utilization')
-
-    # Calculate the consolidated status for the host based on above status
-    # details
-    finalStatus = pingStatus | diskPerfStatus | cpuPerfStatus | \
-        memPerfStatus | swapPerfStatus | nwPerfStatus
-
-    # Get the list of ciritical services
+    # Calculate the consolidated status for the host based on above
+    # status of individual services
+    finalStatus = STATUS_OK
     criticalSrvcs = []
-    if diskPerfStatus == STATUS_CRITICAL:
-        criticalSrvcs.append('Disk Utilization')
-    if cpuPerfStatus == STATUS_CRITICAL:
-        criticalSrvcs.append('Cpu Utilization')
-    if memPerfStatus == STATUS_CRITICAL:
-        criticalSrvcs.append('Memory Utilization')
-    if swapPerfStatus == STATUS_CRITICAL:
-        criticalSrvcs.append('Swap Utilization')
-    if nwPerfStatus == STATUS_CRITICAL:
-        criticalSrvcs.append('Network Utilization')
+    for srvc in srvc_list:
+        srvc_status = checkLiveStatus(hostAddr, srvc)
+        finalStatus = finalStatus | srvc_status
+        if srvc_status == STATUS_CRITICAL:
+            criticalSrvcs.append(srvc)
 
     # Return the status
     if finalStatus == STATUS_CRITICAL:
