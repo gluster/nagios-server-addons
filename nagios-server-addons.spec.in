@@ -120,7 +120,7 @@ fi
 if grep -q "#enable_environment_macros=0" $NagiosCFGFile; then
   sed -i -e 's/#enable_environment_macros=0/enable_environment_macros=1/g' $NagiosCFGFile   
 elif grep -q "process_performance_data=0" $NagiosCFGFile ; then
-  sed -i -e 's/process_performance_data=0/process_performance_data=1/g' $NagiosCFGFile
+  sed -i -e 's/enable_environment_macros=0/enable_environment_macros=1/g' $NagiosCFGFile
 fi
 
 if ! grep -q "#rhs performance monitoring" $NagiosCFGFile; then
@@ -132,7 +132,7 @@ cfg_dir=/etc/nagios/gluster
 
 service_perfdata_command=process-service-perfdata
 host_perfdata_command=process-host-perfdata
-broker_module=/usr/lib64/check_mk/livestatus.o /var/spool/nagios/cmd/live
+broker_module=/usr/lib64/check_mk/livestatus.o @nagioslivestatussocketpath@
 EOF
 fi
 

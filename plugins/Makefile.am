@@ -1,6 +1,9 @@
 dist_glusternagiosplugins_PYTHON = \
+	constants.py \
+	check_cluster_vol_usage.py \
 	check_remote_host.py \
 	gluster_host_service_handler.py \
+	livestatus.py \
 	notify_ovirt_engine_handler.py \
 	$(NULL)
 
