@@ -63,7 +63,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 
     # create critical line and legend
     $def[$k] .= rrd::line2( $VAL['CRIT'], "#FF0000", "Critical\\n");
-
+    $def[$k] .= rrd::comment ("   \\n");
   }
 }
 ?>

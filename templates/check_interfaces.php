@@ -39,15 +39,18 @@ for ($i = 0; $i < $interface_count; $i++) {
     $ds_name[$index+1] = "$interface:: Receiving and ";
     $def[$index+1]  = rrd::def("value1", $RRDFILE[$index+2], $DS[$index+2], "AVERAGE");
     $def[$index+1] .= rrd::cdef ("value2","value1,125000,/");
-    $def[$index+1] .= rrd::line1("value2", "#008000", $data_type);
-    $def[$index+1] .= rrd::gprint ("value2", array("LAST", "AVERAGE", "MAX"), "%10.4lf Gbps");
+    $def[$index+1] .= rrd::line1("value2", "#008000", "Receiving    ");
+    $def[$index+1] .= rrd::gprint ("value2", array("LAST", "AVERAGE", "MAX"), "%6.4lf Gbps");
     
     list ($interface, $data_type) = explode (".", $name[$index+3]);
     $interface = str_replace(";","",$interface);
     $ds_name[$index+1] .= "Transmission speed";
     $def[$index+1] .= rrd::def ("value3", $RRDFILE[$index+3], $DS[$index+3], "AVERAGE");
     $def[$index+1] .= rrd::cdef ("value4","value3,125000,/");
-    $def[$index+1] .= rrd::line1 ("value4", "#0000ff", $data_type) ;
-    $def[$index+1] .= rrd::gprint ("value4", array("LAST", "AVERAGE", "MAX"), "%10.4lf Gbps");
+    $def[$index+1] .= rrd::line1 ("value4", "#0000ff", "Transmission ") ;
+    $def[$index+1] .= rrd::gprint ("value4", array("LAST", "AVERAGE", "MAX"), "%6.4lf Gbps");
+    $def[$index+1] .= rrd::comment ("   \\n");
+    $def[$index+1] .= rrd::comment ("   \\n");
+    $def[$index+1] .= rrd::comment ("   \\n");
     }
 ?>

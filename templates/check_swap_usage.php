@@ -35,6 +35,8 @@ if ($WARN[1] != ""){
 if ($CRIT[1] != "") {
   $CRT = $CRIT[1] / 1048576 ;
   $def[1] .= "LINE2:$CRT#FF0000:\"Critical \\n\" ";
+  $def[1] .= "COMMENT:\" \\n\" ";
+  $def[1] .= "COMMENT:\" \\n\" ";
 }
 
 
