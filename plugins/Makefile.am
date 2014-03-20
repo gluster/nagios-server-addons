@@ -5,6 +5,7 @@ dist_glusternagiosplugins_PYTHON = \
 	gluster_host_service_handler.py \
 	livestatus.py \
 	notify_ovirt_engine_handler.py \
+	check_vol_utilization_server.py \
 	$(NULL)
 
 EXTRA_DIST = \

@@ -46,3 +46,20 @@ def readLiveStatus(cmd):
     table = [line.split('|') for line in answer.split('\n')[:-1]]
 
     return table
+
+
+def checkLiveStatus(cmd):
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(_socketPath)
+
+    # Write command to socket
+    s.send(cmd)
+
+    # Close socket
+    s.shutdown(socket.SHUT_WR)
+
+    # Read the answer
+    answer = s.recv(1000000)
+
+    # return the result
+    return answer
