@@ -1,0 +1,65 @@
+################################################################################
+##
+## SAMPLE GLUSTER CLUSTER CONFIGURATION FOR NAGIOS
+##
+## This is an example of how Nagios can be configured to monitor your
+## gluster cluster. Please use this as a reference.
+## The sample configures a cluster "test-cluster" both as a host group
+## and host. Volume and Cluster services are under the host "test-cluster"
+##
+#################################################################################
+
+
+################################################################################
+# Cluster is defined as hostgroup. All hosts in the cluster will have
+# this hostgroup added in the "hostgroups" section
+################################################################################
+define hostgroup{
+        hostgroup_name  test-cluster ; The name of the cluster hostgroup
+        alias           TEST Cluster ; Long name of the group
+        }
+
+#################################################################################
+# Cluster is also defined as a host. All cluster specific services should
+# have host set as this cluster. For instance, Volume services
+#################################################################################
+define host{
+        use             gluster-cluster         ; Inherit default values from a template
+        host_name       test-cluster            ; The name of cluster. SHOULD BE SAME AS hostgroup defined above
+        alias           test-cluster   ; A longer name to be used for display
+        address         dummy            ; IP address of the host
+        check_command                   check_dummy!0
+}
+
+define host{
+   use gluster-host
+   host_name host.ipaddress1
+   alias node-host.ipaddress1
+   address host.ipaddress1
+   hostgroups gluster_hosts,test-cluster ; SHOULD HAVE the cluster it belongs to
+}
+
+define service {
+  use brick-service
+  host_name host.ipaddress1
+  service_description host.ipaddress1:/bricks/b1
+  display_name Brick-host.ipaddress1:/bricks/b1
+  _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+}
+
+define service{
+  use                    gluster-service-with-graph
+  host_name              test-cluster
+  service_description    Volume Utilization - data-vol
+  _VOL_NAME              data-vol ; MUST DECLARE the custom var _VOL_NAME
+  check_command check_vol_utilization!test-cluster!data-vol!70!90
+}
+
+define service{
+  use                    gluster-service-with-graph
+  host_name              test-cluster
+  service_description    Cluster Utilization
+  check_command check_cluster_vol_usage!80!90
+}
+
+
