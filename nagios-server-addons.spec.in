@@ -70,8 +70,8 @@ Requires:         python-argparse
 Requires:         python-ethtool
 Requires:         python-netaddr
 Requires:         python-pthreading
-Requires:         python-pyinotify
-Requires:         python-selinux
+Requires:         python-inotify
+Requires:         libselinux-python
 Requires:         rrdtool-perl
 
 %description
@@ -189,7 +189,7 @@ fi
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_interfaces.php
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_memory.php
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_swap_usage.php
-%{_libdir}/nagios/plugins/gluster/*
+%attr(0755, -, -) %{_libdir}/nagios/plugins/gluster/*
 %{_sysconfdir}/nagios/gluster/*
 
 %files tests
