@@ -53,7 +53,7 @@ AC_SUBST([nagiospluginsdir], ['${libdir}/nagios/plugins'])
 AC_SUBST([glusternagiospluginsdir], ['${nagiospluginsdir}/gluster'])
 AC_SUBST([glusternagioscommonpylibdir], ['${pyexecdir}/glusternagios'])
 AC_SUBST([nagiosserveraddonstestsdir], ['${datarootdir}/${PACKAGE_NAME}/tests'])
-AC_SUBST([nagioslivestatussocketpath], ['${localstatedir}/spool/nagios/cmd/live'])
+AC_SUBST([nagioslivestatussocketpath], ['/var/spool/nagios/cmd/live'])
 
 # Checking for pyflakes
 AC_PATH_PROG([PYFLAKES], [pyflakes])
