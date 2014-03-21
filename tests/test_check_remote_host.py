@@ -33,7 +33,7 @@ class TestCheckRemoteHost(TestCaseBase):
         self.assertTrue(mock_socket, "called")
         reference.recv.return_value = "0\n"
         plugins.check_remote_host.checkLiveStatus("dummy host", "dummy srvc")
-        reference.connect.assert_called_with("${localstatedir}/"
+        reference.connect.assert_called_with("/var/"
                                              "spool/nagios/cmd/live")
         reference.send.assert_called_with("GET services\nColumns: state\n"
                                           "Filter: description = dummy srvc\n"
