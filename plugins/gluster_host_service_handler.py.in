@@ -1,0 +1,140 @@
+#!/usr/bin/python
+#
+# gluster_host_service_handler.py -- Event handler which checks the
+# status of defined services and accordingly changes the host status
+#
+# Copyright (C) 2014 Red Hat Inc
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+#
+
+import os
+import sys
+import datetime
+import argparse
+
+import livestatus
+from glusternagios import utils
+
+SRVC_STATE_TYPE_SOFT = "SOFT"
+SRVC_STATE_TYPE_HARD = "HARD"
+
+
+def _writeNagiosCommand(cmdStr):
+    with open("@nagioscommandfilepath@", "w") as f:
+        f.write(cmdStr)
+
+
+# Method to change the host status
+def update_host_state(hostAddr, srvcName, statusCode):
+    now = datetime.datetime.now()
+    if statusCode == utils.PluginStatusCode.WARNING:
+        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;" \
+                 "Host Status WARNING - " \
+                 "Service(s) ['%s'] in CRITICAL state\n" \
+                 % (now, hostAddr, statusCode, srvcName)
+    else:
+        cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;Host Status OK - " \
+                 "Services in good health\n" % (now, hostAddr, statusCode)
+
+    _writeNagiosCommand(cmdStr)
+
+
+# Method to execute livestatus
+def checkLiveStatus(hostAddr, srvc):
+    cmd = "GET services\nColumns: state\nFilter: " \
+          "description = %s\nFilter: host_address = %s" % (srvc, hostAddr)
+
+    table = livestatus.readLiveStatus(cmd)
+
+    if len(table) > 0 and len(table[0]) > 0:
+        return int(table[0][0])
+    else:
+        return utils.PluginStatusCode.UNKNOWN
+
+
+def _getHostMonitoringSrvcList():
+    srvc_list = []
+    with open("@hostmonitoringserviceslist@") as data_file:
+        srvc_list = json.load(data_file)['serviceList']
+    return srvc_list
+
+
+# Method to change the host state to UP based on other service type status
+def check_and_update_host_state_to_up(hostAddr, srvcName):
+    finalState = utils.PluginStatusCode.OK
+    for item in _getHostMonitoringSrvcList():
+        if item != srvcName:
+            finalState = finalState | checkLiveStatus(hostAddr, item)
+
+    if finalState == utils.PluginStatusCode.OK:
+        update_host_state(hostAddr, srvcName, utils.PluginStatusCode.OK)
+
+
+# Main method
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s -s <State> -t <State Type>'
+              ' -a <No of attempts> -l <Host Address>'
+              ' -n <Service Name>')
+    parser.add_argument(
+        "-s",
+        "--state",
+        action="store",
+        required=True,
+        type=str,
+        help="Current State of the service (CRITICAL/WARNING/OK/UNKNOWN)")
+    parser.add_argument(
+        "-t"
+        "--statetype",
+        action="store",
+        required=True,
+        type=str,
+        help="State Type of the service (SOFT/HARD)")
+    parser.add_argument(
+        "-a",
+        "--attempts",
+        action="store",
+        required=True,
+        type=int,
+        help="No of attempts")
+    parser.add_argument(
+        "-l",
+        "--location",
+        action="store",
+        required=True,
+        type=str,
+        help="Address of the host")
+    parser.add_argument(
+        "-n",
+        "--name",
+        action="store",
+        required=True,
+        type=str,
+        help="Service Name")
+
+    args = parser.parse_args()
+
+    # Swicth over the service state values and update state
+    if args.state == utils.PluginStatus.CRITICAL \
+            and args.t__statetype == SRVC_STATE_TYPE_HARD:
+        print "Updating the host status to warning..."
+        update_host_state(args.location,
+                          args.name,
+                          utils.PluginStatusCode.WARNING)
+    elif args.state == utils.PluginStatusCode.OK:
+        check_and_update_host_state_to_up(args.location, args.name)
+
+    sys.exit(utils.PluginStatusCode.OK)

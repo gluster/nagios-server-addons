@@ -54,6 +54,8 @@ AC_SUBST([glusternagiospluginsdir], ['${nagiospluginsdir}/gluster'])
 AC_SUBST([glusternagioscommonpylibdir], ['${pyexecdir}/glusternagios'])
 AC_SUBST([nagiosserveraddonstestsdir], ['${datarootdir}/${PACKAGE_NAME}/tests'])
 AC_SUBST([nagioslivestatussocketpath], ['/var/spool/nagios/cmd/live'])
+AC_SUBST([nagioscommandfilepath], ['/var/spool/nagios/cmd/nagios.cmd'])
+AC_SUBST([hostmonitoringserviceslist], ['/etc/nagios/gluster/host-monitoring-services.in'])
 
 # Checking for pyflakes
 AC_PATH_PROG([PYFLAKES], [pyflakes])
@@ -94,7 +96,9 @@ AC_CONFIG_FILES([
 	Makefile
 	nagios-server-addons.spec
 	config/Makefile
+	plugins/check_remote_host.py
 	plugins/constants.py
+	plugins/gluster_host_service_handler.py
 	plugins/Makefile
 	templates/Makefile
 	tests/Makefile

@@ -30,25 +30,10 @@
 import os
 import sys
 import getopt
-#import socket
 import json
 
 import livestatus
-
-STATUS_OK = 0
-STATUS_WARNING = 1
-STATUS_CRITICAL = 2
-STATUS_UNKNOWN = 3
-_commandStatusStrs = {STATUS_OK: 'OK', STATUS_WARNING: 'WARNING',
-                      STATUS_CRITICAL: 'CRITICAL', STATUS_UNKNOWN: 'UNKNOWN'}
-
-
-# Load the host monitoring services list
-def loadSrvcList():
-    srvc_list = []
-    with open("/etc/nagios/gluster/host-monitoring-services.in") as data_file:
-        srvc_list = json.load(data_file)['serviceList']
-    return srvc_list
+from glusternagios import utils
 
 
 # Method to execute livestatus
@@ -62,7 +47,14 @@ def checkLiveStatus(hostAddr, srvc):
     if len(table) > 0 and len(table[0]) > 0:
         return int(table[0][0])
     else:
-        return STATUS_UNKNOWN
+        return utils.PluginStatusCode.UNKNOWN
+
+
+def _getHostMonitoringSrvcList():
+    srvc_list = []
+    with open("@hostmonitoringserviceslist@") as data_file:
+        srvc_list = json.load(data_file)['serviceList']
+    return srvc_list
 
 
 # Method to show the usage
@@ -78,12 +70,12 @@ if __name__ == "__main__":
     except getopt.GetoptError as e:
         print (str(e))
         showUsage()
-        sys.exit(STATUS_CRITICAL)
+        sys.exit(utils.PluginStatusCode.CRITICAL)
 
     hostAddr = ''
     if len(opts) == 0:
         showUsage()
-        sys.exit(STATUS_CRITICAL)
+        sys.exit(utils.PluginStatusCode.CRITICAL)
     else:
         for opt, arg in opts:
             if opt in ("-h", "--help"):
@@ -93,27 +85,24 @@ if __name__ == "__main__":
                 hostAddr = arg
             else:
                 showUsage()
-                sys.exit(STATUS_CRITICAL)
-
-    # Load the services list
-    srvc_list = loadSrvcList()
+                sys.exit(utils.PluginStatusCode.CRITICAL)
 
     # Calculate the consolidated status for the host based on above
     # status of individual services
-    finalStatus = STATUS_OK
+    finalStatus = utils.PluginStatusCode.OK
     criticalSrvcs = []
-    for srvc in srvc_list:
+    for srvc in _getHostMonitoringSrvcList():
         srvc_status = checkLiveStatus(hostAddr, srvc)
         finalStatus = finalStatus | srvc_status
-        if srvc_status == STATUS_CRITICAL:
+        if srvc_status == utils.PluginStatusCode.CRITICAL:
             criticalSrvcs.append(str(srvc))
 
     # Return the status
-    if finalStatus == STATUS_CRITICAL:
+    if finalStatus == utils.PluginStatusCode.CRITICAL:
         print "Host Status %s - Service(s) %s in CRITICAL state" % \
-            (_commandStatusStrs[STATUS_WARNING], criticalSrvcs)
-        sys.exit(STATUS_WARNING)
+            (utils.PluginStatus.WARNING, criticalSrvcs)
+        sys.exit(utils.PluginStatusCode.WARNING)
 
     print "Host Status %s - Services in good health" % \
-        _commandStatusStrs[STATUS_OK]
-    sys.exit(STATUS_OK)
+        utils.PluginStatus.OK
+    sys.exit(utils.PluginStatusCode.OK)
