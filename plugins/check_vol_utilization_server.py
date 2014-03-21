@@ -13,19 +13,19 @@ def excecNRPECommand(host):
     answer = livestatus.checkLiveStatus("GET hosts\nColumns: address\n"
                                         "Filter: display_name = "
                                         + host + "\n")
-    command = _NRPEPath + " -H " + answer.rstrip() + " -c " \
-        "check_vol_utilization -a " + args.volume + " " + \
-        str(args.warning) + " " + str(args.critical)
+    command = (_NRPEPath + " -H " + answer.rstrip() + " -c " +
+               "check_vol_utilization -a " + args.volume + " " +
+               str(args.warning) + " " + str(args.critical))
     status = commands.getoutput(command)
     return status
 
 
 def showVolumeUtilization(args):
-    table = livestatus.readLiveStatus("GET hostgroups\nColumns: members name\n"
+    table = livestatus.readLiveStatus("GET hostgroups\nColumns: members\n"
                                       "Filter: name = "
                                       + args.hostgroup + "\n")
     tab1 = table[0]
-    list_hosts = tab1[0].split(";")
+    list_hosts = tab1[0].split(",")
     #First take a random host from the group and send the request
     host = random.choice(list_hosts)
     status = excecNRPECommand(host)

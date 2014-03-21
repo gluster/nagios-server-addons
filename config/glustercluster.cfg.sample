@@ -31,6 +31,14 @@ define host{
         check_command                   check_dummy!0
 }
 
+################################################################################
+# This defines a Host
+# Edit this sample
+#    host_name = FQDN or IP address of host
+#    alias = Used for display
+#    address = FQDN or IP address of host
+#    hostgroups = Add the name of hostgroup defined for cluster
+################################################################################
 define host{
    use gluster-host
    host_name host.ipaddress1
@@ -39,6 +47,14 @@ define host{
    hostgroups gluster_hosts,test-cluster ; SHOULD HAVE the cluster it belongs to
 }
 
+################################################################################
+# This defines a Brick utilization service
+# Edit this sample
+#    host_name = host the brick is on
+#    service_description = brick name of form serverip:brickdir
+#    display_name = Name to be shown up on Nagios.
+#    _BRICK_DIR = Path to brick on server
+################################################################################
 define service {
   use brick-service
   host_name host.ipaddress1
@@ -47,6 +63,14 @@ define service {
   _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
 }
 
+################################################################################
+# This defines a Volume utilization service
+# Edit this sample
+#    host_name = the cluster host previously defined for cluster
+#    service_description = Volume Utilization - <volname>
+#    check_command = check_vol_utilization!<cluster-hostgroup-name>!<volume-name>!<warning>!<threshold>
+#    _VOL_NAME = Volume name
+################################################################################
 define service{
   use                    gluster-service-with-graph
   host_name              test-cluster
@@ -55,6 +79,11 @@ define service{
   check_command check_vol_utilization!test-cluster!data-vol!70!90
 }
 
+################################################################################
+# This defines a Cluster utilization service
+# Edit this sample
+#    host_name = cluster host previously defined. (The service is under a cluster)
+################################################################################
 define service{
   use                    gluster-service-with-graph
   host_name              test-cluster
