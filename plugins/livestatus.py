@@ -21,7 +21,7 @@
 #
 
 import socket
-from plugins import constants
+import constants
 
 _socketPath = constants.LIVESTATUS_SOCKETPATH
 

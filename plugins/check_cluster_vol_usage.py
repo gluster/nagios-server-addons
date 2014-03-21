@@ -59,8 +59,7 @@ def checkVolumePerfData(clusterName):
 # Main method
 if __name__ == "__main__":
 
-    parser = ArgumentParser(description=
-                            "Calculate the aggregate "
+    parser = ArgumentParser(description="Calculate the aggregate "
                             "capacity usage in cluster")
     parser.add_argument('-w', '--warning',
                         action='store',
@@ -91,7 +90,7 @@ if __name__ == "__main__":
     else:
         warn = int((args.warn * avail) / 100.0)
         crit = int((args.crit * avail) / 100.0)
-        usedpercent = int((used/avail) * 100.0)
+        usedpercent = int((used / avail) * 100.0)
         if (usedpercent >= args.warn):
             statusstr = "WARNING"
             exitstatus = 1
