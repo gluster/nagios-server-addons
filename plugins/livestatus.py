@@ -30,7 +30,7 @@ def readLiveStatus(cmd):
     # Change the default separators to
     # Linefeed for row, | for columns,
     # comma for lists such as contacts, semicolon for lists such as hosts
-    cmd += "\nSeparators: 10 124 44 59"
+    cmd += "\nSeparators: 10 124 44 59\n"
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(_socketPath)
 

@@ -106,7 +106,7 @@ if __name__ == "__main__":
         srvc_status = checkLiveStatus(hostAddr, srvc)
         finalStatus = finalStatus | srvc_status
         if srvc_status == STATUS_CRITICAL:
-            criticalSrvcs.append(srvc)
+            criticalSrvcs.append(str(srvc))
 
     # Return the status
     if finalStatus == STATUS_CRITICAL:
