@@ -39,7 +39,7 @@ class TestCheckRemoteHost(TestCaseBase):
                                           "Filter: description = dummy srvc\n"
                                           "Filter: host_address = "
                                           "dummy host\n"
-                                          "Separators: 10 124 44 59")
+                                          "Separators: 10 124 44 59\n")
         self.assertEquals(0,
                           plugins.
                           check_remote_host.
