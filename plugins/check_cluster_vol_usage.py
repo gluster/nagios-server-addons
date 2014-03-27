@@ -30,7 +30,8 @@
 import sys
 import re
 from argparse import ArgumentParser
-from plugins import livestatus
+import livestatus
+from glusternagios import utils
 
 
 def checkVolumePerfData(clusterName):
@@ -82,23 +83,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # Check the various performance statuses for the host
     used, avail = checkVolumePerfData(args.hostgroup)
-    statusstr = "OK"
-    exitstatus = 0
+    statusstr = utils.PluginStatus.OK
+    exitstatus = utils.PluginStatusCode.OK
     if used == 0 and avail == 0:
-        statusstr = "UNKNOWN"
-        exitstatus = 3
+        statusstr = utils.PluginStatus.UNKNOWN
+        exitstatus = utils.PluginStatusCode.UNKNOWN
+        print ("%s - No volumes found" % statusstr)
     else:
         warn = int((args.warn * avail) / 100.0)
         crit = int((args.crit * avail) / 100.0)
         usedpercent = int((used / avail) * 100.0)
         if (usedpercent >= args.warn):
-            statusstr = "WARNING"
-            exitstatus = 1
+            statusstr = utils.PluginStatus.WARNING
+            exitstatus = utils.PluginStatusCode.WARNING
         if (usedpercent >= args.crit):
-            statusstr = "CRITICAL"
-            exitstatus = 2
+            statusstr = utils.PluginStatus.CRITICAL
+            exitstatus = utils.PluginStatusCode.CRITICAL
+        availGB = utils.convertSize(avail, "KB", "GB")
+        print ("%s - used %s%% of available %s GB|used=%s;%s;%s;0;%s;"
+               % (statusstr, usedpercent,
+                  availGB, usedpercent, args.warn, args.crit, 100))
 
-    print ("%s - used %s%% of available %s|used=%s;%s;%s;0;%s;"
-           % (statusstr, usedpercent,
-              avail, usedpercent, args.warn, args.crit, 100))
     sys.exit(exitstatus)
