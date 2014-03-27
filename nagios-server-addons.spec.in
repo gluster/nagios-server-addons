@@ -63,6 +63,7 @@ Requires:         check-mk-livestatus
 Requires:         gluster-nagios-common
 Requires:         httpd
 Requires:         nagios
+Requires:         nagios-plugins-dummy
 Requires:         nagios-plugins-nrpe
 Requires:         php
 Requires:         pnp4nagios
