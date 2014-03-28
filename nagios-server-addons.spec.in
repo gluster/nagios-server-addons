@@ -47,6 +47,7 @@ BuildRequires:    python-pep8
 BuildRequires:    python-mock
 BuildRequires:    python-nose
 BuildRequires:    python-devel
+BuildRequires:    python-jinja2
 %if ( 0%{?_with_systemd:1} )
 BuildRequires:    systemd-units
 Requires(post):   systemd-units
@@ -74,6 +75,7 @@ Requires:         python-pthreading
 Requires:         python-inotify
 Requires:         libselinux-python
 Requires:         rrdtool-perl
+Requires:         python-jinja2
 
 %description
 Nagios plugin, scripts, configuration files etc for gluster nodes.

@@ -56,6 +56,9 @@ AC_SUBST([nagiosserveraddonstestsdir], ['${datarootdir}/${PACKAGE_NAME}/tests'])
 AC_SUBST([nagioslivestatussocketpath], ['/var/spool/nagios/cmd/live'])
 AC_SUBST([nagioscommandfilepath], ['/var/spool/nagios/cmd/nagios.cmd'])
 AC_SUBST([hostmonitoringserviceslist], ['/etc/nagios/gluster/host-monitoring-services.in'])
+AC_SUBST([nrpepath], ['/usr/lib64/nagios/plugins/check_nrpe'])
+AC_SUBST([glusterautoconfdir], ['/etc/nagios/gluster'])
+AC_SUBST([glusterhostconfigtemplatedir], ['/etc/nagios/gluster/default'])
 
 # Checking for pyflakes
 AC_PATH_PROG([PYFLAKES], [pyflakes])

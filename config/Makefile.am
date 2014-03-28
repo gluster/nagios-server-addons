@@ -11,6 +11,7 @@ glusternagiosconf_DATA = \
 glusternagiosdefaultconfdir = $(sysconfdir)/nagios/gluster/default
 glusternagiosdefaultconf_DATA = \
 	glustercluster.cfg.sample \
+	gluster-host.cfg.template \
 	node1.cfg \
         $(NULL)
 

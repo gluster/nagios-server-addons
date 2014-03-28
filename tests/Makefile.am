@@ -22,6 +22,7 @@ test_modules = \
 	test_check_cluster_volusage.py \
 	test_check_remote_host.py \
 	test_notify_ovirt_engine_handler.py \
+	test_config_generator.py \
 	$(NULL)
 
 dist_nagiosserveraddonstests_DATA = \
