@@ -6,7 +6,6 @@ dist_glusternagiosplugins_PYTHON = \
 	gluster_host_service_handler.py \
 	livestatus.py \
 	notify_ovirt_engine_handler.py \
-	server_utils.py \
 	$(NULL)
 
 EXTRA_DIST = \
