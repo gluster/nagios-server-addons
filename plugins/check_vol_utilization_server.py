@@ -4,6 +4,7 @@ import commands
 import random
 import argparse
 import livestatus
+import os
 
 _NRPEPath = "/usr/lib64/nagios/plugins/check_nrpe"
 
@@ -16,8 +17,8 @@ def excecNRPECommand(host):
     command = (_NRPEPath + " -H " + answer.rstrip() + " -c " +
                "check_vol_utilization -a " + args.volume + " " +
                str(args.warning) + " " + str(args.critical))
-    status = commands.getoutput(command)
-    return status
+    status, output = commands.getstatusoutput(command)
+    return status, output
 
 
 def showVolumeUtilization(args):
@@ -28,21 +29,21 @@ def showVolumeUtilization(args):
     list_hosts = tab1[0].split(",")
     #First take a random host from the group and send the request
     host = random.choice(list_hosts)
-    status = excecNRPECommand(host)
+    status, output = excecNRPECommand(host)
     #if success return from here
-    if "Volume Utilization" in status:
-        return status
+    if "Volume Utilization" in output:
+        return status, output
     #radom host is not able to execute the command
     #Now try to iterate through the list of hosts
     #in the host group and send the command until
     #the command is successful
     for host in list_hosts:
-        status = excecNRPECommand(host)
+        status, output = excecNRPECommand(host)
         #if success return from here
-        if "Volume Utilization" in status:
-            return status
+        if "Volume Utilization" in output:
+            return status, output
             break
-    return status
+    return status, output
 
 
 def parse_input():
@@ -77,5 +78,6 @@ def parse_input():
 
 if __name__ == '__main__':
     args = parse_input()
-    status = showVolumeUtilization(args)
-    print status
+    status, output = showVolumeUtilization(args)
+    print output
+    exit(os.WEXITSTATUS(status))
