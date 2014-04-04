@@ -84,15 +84,13 @@ def discovercluster(args):
     hostlist.append({"hostip": args.hostip})
     for host in hostlist:
         if(ipPat.match(host['hostip'])):
-            host.update(discoverhostdetails(host['hostip'], args))
+            #host.update(discoverhostdetails(host['hostip'], args))
             #Get the list of bricks for this host and add to dictionary
             host['bricks'] = \
-                [brick for brick in componentlist
+                [brick for brick in componentlist['bricks']
                  if brick["hostip"] == host['hostip']]
     clusterdata['hosts'] = hostlist
-    clusterdata['volumes'] =\
-        [volume for volume in componentlist
-         if volume["srvctype"] == "volume"]
+    clusterdata['volumes'] = componentlist['volumes']
     clusterdata['name'] = args.cluster
     return clusterdata
 
