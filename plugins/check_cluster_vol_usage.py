@@ -39,7 +39,7 @@ def checkVolumePerfData(clusterName):
     # Write command to socket
     cmd = "GET services\nColumns: description host_name " \
           "perf_data custom_variables\nFilter: " \
-          "description ~~ %s\n" % 'Volume-'
+          "description ~~ %s" % 'Volume Utilization -'
     table = livestatus.readLiveStatus(cmd)
     totalUsed = 0.0
     totalAvail = 0.0
