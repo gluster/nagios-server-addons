@@ -66,13 +66,13 @@ if __name__ == "__main__":
                         action='store',
                         type=int,
                         dest='warn',
-                        help='Warning in %',
+                        help='Warning in %%',
                         default=70)
     parser.add_argument('-c', '--critical',
                         action='store',
                         type=int,
                         dest='crit',
-                        help='Critical threshold Warning in %',
+                        help='Critical threshold Warning in %%',
                         default=95)
     parser.add_argument('-hg', '--host-group',
                         action='store',
