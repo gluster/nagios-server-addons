@@ -6,6 +6,7 @@ glusternagiosconf_DATA = \
 	gluster-templates.cfg \
 	gluster-contacts.cfg \
 	host-monitoring-services.in \
+	snmpmanagers.cfg \
         $(NULL)
 
 glusternagiosdefaultconfdir = $(sysconfdir)/nagios/gluster/default
@@ -15,7 +16,14 @@ glusternagiosdefaultconf_DATA = \
 	node1.cfg \
         $(NULL)
 
+glusternagiosmibsdir = /usr/share/snmp/mibs
+glusternagiosmibs_DATA = \
+	NAGIOS-NOTIFY-MIB \
+	NAGIOS-ROOT-MIB \
+        $(NULL)
+
 EXTRA_DIST = \
 	$(glusternagiosconf_DATA) \
 	$(glusternagiosdefaultconf_DATA) \
+	$(glusternagiosmibs_DATA) \
         $(NULL)

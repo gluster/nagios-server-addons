@@ -76,6 +76,7 @@ Requires:         python-inotify
 Requires:         libselinux-python
 Requires:         rrdtool-perl
 Requires:         python-jinja2
+Requires:         net-snmp-utils
 
 %description
 Nagios plugin, scripts, configuration files etc for gluster nodes.
@@ -195,6 +196,7 @@ fi
 %attr(0755, -, -) %{_libdir}/nagios/plugins/gluster/*
 %attr(0775, root, nagios) %dir %{_sysconfdir}/nagios/gluster
 %{_sysconfdir}/nagios/gluster/*
+/usr/share/snmp/mibs/*
 
 %files tests
 %defattr(-,root,root,-)

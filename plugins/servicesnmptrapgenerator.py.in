@@ -1,0 +1,108 @@
+#!/usr/bin/python
+# servicesnmptrapgenerator.py.in -- nagios plugin for generating the
+#SNMP traps on service status change
+# Copyright (C) 2014 Red Hat Inc
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+#
+
+import argparse
+import commands
+
+from glusternagios import utils
+
+
+varbindlist = {'nSvcNotifyType': ' nSvcNotifyType i ',
+               'nSvcNotifyNum': ' nSvcNotifyNum i ',
+               'nHostname': ' nHostname s ',
+               'nHostStateID': ' nHostStateID i ',
+               'nSvcDesc': ' nSvcDesc s ',
+               'nSvcStateID': ' nSvcStateID i ',
+               'nSvcAttempt': ' nSvcAttempt i ',
+               'nSvcDurationSec': ' nSvcDurationSec i ',
+               'nSvcGroupName': ' nSvcGroupName s ',
+               'nSvcLastCheck': ' nSvcLastCheck i ',
+               'nSvcLastChange': ' nSvcLastChange i ',
+               'nSvcOutput': ' nSvcOutput s '}
+
+
+def parse_input():
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s [-h] <nSvcNotifyType>  < nSvcNotifyNum> '
+              '<nHostname> '
+              '<nHostStateID> <nSvcDesc> <nSvcStateID> '
+              '<nSvcAttempt> <nSvcDurationSec> <nSvcGroupName> '
+              '<nSvcLastCheck> <nSvcLastChange> <nSvcOutput>')
+    parser.add_argument("nSvcNotifyType")
+    parser.add_argument("nSvcNotifyNum")
+    parser.add_argument("nHostname")
+    parser.add_argument("nHostStateID")
+    parser.add_argument("nSvcDesc")
+    parser.add_argument("nSvcStateID")
+    parser.add_argument("nSvcAttempt")
+    parser.add_argument("nSvcDurationSec")
+    parser.add_argument("nSvcGroupName")
+    parser.add_argument("nSvcLastCheck")
+    parser.add_argument("nSvcLastChange")
+    parser.add_argument("nSvcOutput")
+
+    args = parser.parse_args()
+
+    return args
+
+
+def buildandsendsnmptrap(args):
+    command = ""
+    path = "@snmpmanagerlist@"
+    listofmanagers = utils.getsnmpmanagers(path)
+    for manager in listofmanagers:
+        command = utils.sudoCmdPath.cmd + " " \
+            + utils.trapCmdPath.cmd + " -v 2c -c "
+        command += manager['community'] + " " + manager['host'] + ''' '' ''' +\
+            "NAGIOS-NOTIFY-MIB::nSvcNotify" +\
+            varbindlist['nSvcNotifyType'] + args.nSvcNotifyType + \
+            varbindlist['nHostname'] + args.nHostname +\
+            varbindlist['nHostStateID'] + args.nHostStateID +\
+            varbindlist['nSvcDesc'] + args.nSvcDesc +\
+            varbindlist['nSvcStateID'] + args.nSvcStateID +\
+            varbindlist['nSvcAttempt'] + args.nSvcAttempt +\
+            varbindlist['nSvcGroupName'] + args.nSvcGroupName +\
+            varbindlist['nSvcLastCheck'] + args.nSvcLastCheck +\
+            varbindlist['nSvcLastChange'] + args.nSvcLastChange +\
+            varbindlist['nSvcOutput'] + args.nSvcOutput
+        commands.getoutput(command)
+
+
+def formatargs(args):
+    #convert nSvcNotifyType to enum value
+    svcnotifytype = {'problem': '0',
+                     'recovery': '1',
+                     'acknowledgement': '2',
+                     'flappingstart': '3',
+                     'flappingstop': '4'}
+    args.nSvcNotifyType = svcnotifytype[args.nSvcNotifyType.lower()]
+    #Add quotes to string parameters to handle
+    #parameters with multiple words separated with
+    #spaces
+    args.nHostname = '''"'''+args.nHostname+'''"'''
+    args.nSvcDesc = '''"'''+args.nSvcDesc+'''"'''
+    args.nSvcGroupName = '''"'''+args.nSvcGroupName+'''"'''
+    args.nSvcOutput = '''"'''+args.nSvcOutput+'''"'''
+
+
+if __name__ == '__main__':
+    args = parse_input()
+    formatargs(args)
+    buildandsendsnmptrap(args)

@@ -1,0 +1,109 @@
+#!/usr/bin/python
+# hostsnmptrapgenerator.py.in -- nagios plugin for generating the
+#SNMP traps on host status change
+# Copyright (C) 2014 Red Hat Inc
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+#
+
+import argparse
+import commands
+
+from glusternagios import utils
+
+
+varbindlist = {'nHostNotifyType': ' nHostNotifyType i ',
+               'nHostAckAuthor': ' nHostAckAuthor s ',
+               'nHostAckComment': ' nHostAckComment s ',
+               'nHostname': ' nHostname s ',
+               'nHostStateID': ' nHostStateID i ',
+               'nHostStateType': ' nHostStateType i ',
+               'nHostAttempt': ' nHostAttempt i ',
+               'nHostDurationSec': ' nHostDurationSec i ',
+               'nHostGroupName': ' nHostGroupName s ',
+               'nHostLastCheck': ' nHostLastCheck i ',
+               'nHostLastChange': ' nHostLastChange i ',
+               'nHostOutput': ' nHostOutput s '}
+
+
+def buildandsendsnmptrap(args):
+    command = ""
+    path = "@snmpmanagerlist@"
+    listofmanagers = utils.getsnmpmanagers(path)
+    for manager in listofmanagers:
+        command = utils.sudoCmdPath.cmd + " " \
+            + utils.trapCmdPath.cmd + " -v 2c -c "
+        command += manager['community'] + " " + manager['host'] + ''' '' ''' +\
+            "NAGIOS-NOTIFY-MIB::nHostNotify" +\
+            varbindlist['nHostNotifyType'] + args.nHostNotifyType + \
+            varbindlist['nHostname'] + args.nHostname +\
+            varbindlist['nHostStateID'] + args.nHostStateID +\
+            varbindlist['nHostStateType'] + args.nHostStateType +\
+            varbindlist['nHostAttempt'] + args.nHostAttempt +\
+            varbindlist['nHostDurationSec'] + args.nHostDurationSec +\
+            varbindlist['nHostGroupName'] + args.nHostGroupName +\
+            varbindlist['nHostLastCheck'] + args.nHostLastCheck +\
+            varbindlist['nHostLastChange'] + args.nHostLastChange +\
+            varbindlist['nHostOutput'] + args.nHostOutput
+        commands.getoutput(command)
+
+
+def parse_input():
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s [-h] <nHostNotifyType>  < nHostNotifyNum> '
+              '<nHostname> '
+              '<nHostStateID> <nHostStateType> <nHostAttempt> '
+              '< nHostDurationSec> <nHostGroupName> <nHostLastCheck> '
+              '<nHostLastChange> <nHostOutput>')
+    parser.add_argument("nHostNotifyType")
+    parser.add_argument("nHostNotifyNum")
+    parser.add_argument("nHostname")
+    parser.add_argument("nHostStateID")
+    parser.add_argument("nHostStateType")
+    parser.add_argument("nHostAttempt")
+    parser.add_argument("nHostDurationSec")
+    parser.add_argument("nHostGroupName")
+    parser.add_argument("nHostLastCheck")
+    parser.add_argument("nHostLastChange")
+    parser.add_argument("nHostOutput")
+
+    args = parser.parse_args()
+
+    return args
+
+
+def formatargs(args):
+    #convert nHostNotifyType to enum value
+    hostnotifytype = {'problem': '0',
+                      'recovery': '1',
+                      'acknowledgement': '2',
+                      'flappingstart': '3',
+                      'flappingstop': '4'}
+    args.nHostNotifyType = hostnotifytype[args.nHostNotifyType.lower()]
+    #convert nHostStateType to enum value
+    hoststatetype = {'hard': '0', 'soft': '1'}
+    args.nHostStateType = hoststatetype[args.nHostStateType.lower()]
+    #Add quotes to string parameters to handle
+    #parameters with multiple words separated with
+    #spaces
+    args.nHostname = '''"'''+args.nHostname+'''"'''
+    args.nHostGroupName = '''"'''+args.nHostGroupName+'''"'''
+    args.nHostOutput = '''"'''+args.nHostOutput+'''"'''
+
+
+if __name__ == '__main__':
+    args = parse_input()
+    formatargs(args)
+    buildandsendsnmptrap(args)

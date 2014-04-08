@@ -5,10 +5,12 @@ dist_glusternagiosplugins_PYTHON = \
 	check_remote_host.py \
 	check_vol_server.py \
 	gluster_host_service_handler.py \
+	hostsnmptrapgenerator.py \
 	livestatus.py \
 	notify_ovirt_engine_handler.py \
 	discovery.py \
 	config_generator.py \
+	servicesnmptrapgenerator.py \
 	$(NULL)
 
 EXTRA_DIST = \

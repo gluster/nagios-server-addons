@@ -59,6 +59,7 @@ AC_SUBST([hostmonitoringserviceslist], ['/etc/nagios/gluster/host-monitoring-ser
 AC_SUBST([nrpepath], ['/usr/lib64/nagios/plugins/check_nrpe'])
 AC_SUBST([glusterautoconfdir], ['/etc/nagios/gluster'])
 AC_SUBST([glusterhostconfigtemplatedir], ['/etc/nagios/gluster/default'])
+AC_SUBST([snmpmanagerlist], ['/etc/nagios/gluster/snmpmanagers.cfg'])
 
 # Checking for pyflakes
 AC_PATH_PROG([PYFLAKES], [pyflakes])
@@ -103,6 +104,8 @@ AC_CONFIG_FILES([
 	plugins/constants.py
 	plugins/gluster_host_service_handler.py
 	plugins/Makefile
+	plugins/hostsnmptrapgenerator.py
+	plugins/servicesnmptrapgenerator.py
 	templates/Makefile
 	tests/Makefile
 	tests/run_tests_local.sh

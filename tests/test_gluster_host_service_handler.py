@@ -70,8 +70,8 @@ class TestGlusterHostServiceHandler(TestCaseBase):
                                                  "Service(s) [\'dummy srvc\']"
                                                  " in CRITICAL state\n")
 
-    @mock.patch('plugins.gluster_host_service_handler.' \
-                '_getHostMonitoringSrvcList')
+    @mock.patch(
+        'plugins.gluster_host_service_handler._getHostMonitoringSrvcList')
     @mock.patch('plugins.gluster_host_service_handler.checkLiveStatus')
     @mock.patch('plugins.gluster_host_service_handler.update_host_state')
     def testCheckAndUpdateHostStateToUp(self,
