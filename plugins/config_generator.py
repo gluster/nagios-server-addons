@@ -140,7 +140,7 @@ class GlusterNagiosConfManager:
         hostsConfigs = []
         clusterServices = self.createrVolumeServices(
             cluster.get('volumes'), cluster['name'])
-        # If there are volumes, then create a cluster utilization service at cluster level
+        # If there are volumes, then create a cluster utilization service
         if cluster.get('volumes'):
             clusterServices.append(self.createClusterUtilizationService(
                 cluster['name']))
