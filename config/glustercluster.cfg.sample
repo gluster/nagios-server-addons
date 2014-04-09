@@ -52,14 +52,26 @@ define host{
 # Edit this sample
 #    host_name = host the brick is on
 #    service_description = brick name of form serverip:brickdir
-#    display_name = Name to be shown up on Nagios.
 #    _BRICK_DIR = Path to brick on server
 ################################################################################
 define service {
   use brick-service
   host_name host.ipaddress1
-  service_description host.ipaddress1:/bricks/b1
-  display_name Brick-host.ipaddress1:/bricks/b1
+  service_description Brick Utilization - host.ipaddress1:/bricks/b1
+  _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+}
+
+################################################################################
+# This defines a Brick Status service
+# Edit this sample
+#    host_name = host the brick is on
+#    service_description = brick name of form serverip:brickdir
+#    _BRICK_DIR = Path to brick on server
+################################################################################
+define service {
+  use brick-passive-service
+  host_name host.ipaddress1
+  service_description Brick Status - host.ipaddress1:/bricks/b1
   _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
 }
 
