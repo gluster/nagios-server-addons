@@ -96,8 +96,7 @@ class GlusterNagiosConfManager:
         service['host_name'] = clusterName
         service['use'] = 'generic-service'
         service['service_description'] = 'Cluster Auto Config'
-        service['check_command'] = "gluster_auto_discovery!%s!%s" % (
-            hostIp, clusterName)
+        service['check_command'] = "gluster_auto_discovery!%s" % (hostIp)
         service['check_interval'] = '1440'
         return service
 
@@ -141,10 +140,12 @@ class GlusterNagiosConfManager:
         hostsConfigs = []
         clusterServices = self.createrVolumeServices(
             cluster.get('volumes'), cluster['name'])
-        clusterServices.append(self.createClusterUtilizationService(
-            cluster['name']))
+        # If there are volumes, then create a cluster utilization service at cluster level
+        if cluster.get('volumes'):
+            clusterServices.append(self.createClusterUtilizationService(
+                cluster['name']))
         clusterServices.append(self.createClusterAutoConfigService(
-            cluster['name'], cluster['hosts'][0]['hostip']))
+            cluster['name'], cluster['hosts'][-1]['hostip']))
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
             cluster['name'], "", "check_dummy", clusterServices)
