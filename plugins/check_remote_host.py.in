@@ -89,16 +89,14 @@ if __name__ == "__main__":
 
     # Calculate the consolidated status for the host based on above
     # status of individual services
-    finalStatus = utils.PluginStatusCode.OK
     criticalSrvcs = []
     for srvc in _getHostMonitoringSrvcList():
         srvc_status = checkLiveStatus(hostAddr, srvc)
-        finalStatus = finalStatus | srvc_status
         if srvc_status == utils.PluginStatusCode.CRITICAL:
             criticalSrvcs.append(str(srvc))
 
     # Return the status
-    if finalStatus == utils.PluginStatusCode.CRITICAL:
+    if len(criticalSrvcs) > 0:
         print "Host Status %s - Service(s) %s in CRITICAL state" % \
             (utils.PluginStatus.WARNING, criticalSrvcs)
         sys.exit(utils.PluginStatusCode.WARNING)
