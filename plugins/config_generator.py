@@ -73,7 +73,7 @@ class GlusterNagiosConfManager:
     def __createVolumeStatusService(self, volume, clusterName):
         volumeService = {}
         volumeService['host_name'] = clusterName
-        volumeService['use'] = 'gluster-service-withoout-graph'
+        volumeService['use'] = 'gluster-service-without-graph'
         serviceDesc = 'Volume Status - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
         volumeService['_VOL_NAME'] = volume['name']
@@ -81,6 +81,18 @@ class GlusterNagiosConfManager:
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
         volumeService['notes'] = "Volume type : %s" % (volume['typeStr'])
+        return volumeService
+
+    def __createVolumeQuotaStatusService(self, volume, clusterName):
+        volumeService = {}
+        volumeService['host_name'] = clusterName
+        volumeService['use'] = 'gluster-service-without-graph'
+        serviceDesc = 'Volume Status Quota - %s' % (volume['name'])
+        volumeService['service_description'] = serviceDesc
+        volumeService['_VOL_NAME'] = volume['name']
+        checkCommand = 'check_vol_quota_status!%s!%s' % \
+                       (clusterName, volume['name'])
+        volumeService['check_command'] = checkCommand
         return volumeService
 
     def createClusterUtilizationService(self, clusterName):
@@ -104,6 +116,9 @@ class GlusterNagiosConfManager:
         volumeServices = []
         for volume in volumes:
             volumeService = self.__createVolumeUtilizationService(volume,
+                                                                  clusterName)
+            volumeServices.append(volumeService)
+            volumeService = self.__createVolumeQuotaStatusService(volume,
                                                                   clusterName)
             volumeServices.append(volumeService)
         return volumeServices

@@ -23,22 +23,26 @@ def _getListHosts(args):
 def _getHostAddress(host):
     # Get the address of the host
     host_address = livestatus.checkLiveStatus("GET hosts\nColumns: address\n"
-                                        "Filter: display_name = "
-                                        + host + "\n")
+                                              "Filter: display_name = "
+                                              + host + "\n")
     return host_address.rstrip()
 
 
 def _getVolUtilizationNRPECommand(args):
     return ("check_vol_utilization -a " + args.volume + " " +
-                   str(args.warning) + " " + str(args.critical))
+            str(args.warning) + " " + str(args.critical))
 
 
 def _getVolStatusNRPECommand(args):
     return ("check_vol_status -a " + args.volume)
 
 
+def _getVolQuotaStatusNRPECommand(args):
+    return ("check_vol_quota_status -a " + args.volume)
+
+
 def _getNRPEBaseCmd(host):
-    return _NRPEPath + " -H " + host + " -c ";
+    return _NRPEPath + " -H " + host + " -c "
 
 
 def execNRPECommand(command):
@@ -46,43 +50,53 @@ def execNRPECommand(command):
     return os.WEXITSTATUS(status), output
 
 
-def showVolumeOutput(args):
+def _getVolumeQuotaStatusOutput(args):
+    # get current volume quota status
+    table = livestatus.checkLiveStatus("GET services\n"
+                                       "Columns: status plugin_output\n"
+                                       "Filter: service_description = "
+                                       "Volume Status Quota - " + args.volume)
+    servicestatus = table[0]
+    statusoutput = table[1]
+    if (servicestatus == utils.PluginStatusCode.OK and
+            statusoutput.find("QUOTA: OK") > -1):
+        # if ok, don't poll
+        return servicestatus, statusoutput
+    return _executeRandomHost(_getVolQuotaStatusNRPECommand(args))
+
+
+def _executeRandomHost(command):
     list_hosts = _getListHosts(args)
     host = random.choice(list_hosts)
     #Get the address of the host
     host_address = _getHostAddress(host)
 
-    if args.option == 'status':
-        command = _getVolStatusNRPECommand(args)
-    elif args.option == 'utilization':
-        command = _getVolUtilizationNRPECommand(args)
-
     status, output = execNRPECommand(_getNRPEBaseCmd(host_address) + command)
 
     if status != utils.PluginStatusCode.UNKNOWN:
         return status, output
+    #random host is not able to execute the command
+    #Now try to iterate through the list of hosts
+    #in the host group and send the command until
+    #the command is successful
     for host in list_hosts:
         status, output = execNRPECommand(_getNRPEBaseCmd(_getHostAddress(host))
                                          + command)
         if status != utils.PluginStatusCode.UNKNOWN:
             return status, output
-            break
     return status, output
 
-    #if success return from here
-    if "Volume Utilization" in output:
-        return status, output
-    #radom host is not able to execute the command
-    #Now try to iterate through the list of hosts
-    #in the host group and send the command until
-    #the command is successful
-    for host in list_hosts:
-        status, output = execNRPECommand(host, args)
-        #if success return from here
-        if "Volume Utilization" in output:
-            return status, output
-            break
-    return status, output
+
+def showVolumeOutput(args):
+
+    if args.option == 'status':
+        command = _getVolStatusNRPECommand(args)
+    elif args.option == 'utilization':
+        command = _getVolUtilizationNRPECommand(args)
+    elif args.option == 'quota':
+        return _getVolumeQuotaStatusOutput(args)
+
+    return _executeRandomHost(command)
 
 
 def parse_input():
@@ -113,7 +127,8 @@ def parse_input():
                         action='store',
                         help='the volume option to check',
                         choices=['utilization',
-                                 'status'])
+                                 'status',
+                                 'quota'])
     args = parser.parse_args()
     if args.critical <= args.warning:
         print "UNKNOWN:Critical must be greater than Warning."
@@ -123,5 +138,5 @@ def parse_input():
 if __name__ == '__main__':
     args = parse_input()
     status, output = showVolumeOutput(args)
-    print output
+    print (output)
     exit(status)
