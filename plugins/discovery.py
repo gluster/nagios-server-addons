@@ -21,7 +21,10 @@ import commands
 import json
 import datetime
 import re
+import sys
+
 from config_generator import GlusterNagiosConfManager
+from glusternagios import utils
 
 #from glusternagios import utils
 from constants import DEFAULT_AUTO_CONFIG_DIR
@@ -29,6 +32,9 @@ from constants import HOST_TEMPLATE_DIR
 from constants import HOST_TEMPLATE_NAME
 from constants import NRPE_PATH
 from constants import NAGIOS_COMMAND_FILE_PATH
+
+
+serviceCmdPath = utils.CommandPath("service", "/sbin/service", )
 
 
 def excecNRPECommand(command):
@@ -118,11 +124,19 @@ def getConfigManager(args):
     return configManager
 
 
-def __restartNagios():
+def _restartNagios():
     now = datetime.datetime.now()
     cmdStr = "[%s] RESTART_PROGRAM\n" % (now)
     with open(NAGIOS_COMMAND_FILE_PATH, "w") as f:
         f.write(cmdStr)
+
+
+def _isNagiosRunning():
+    (rc, out, err) = utils.execCmd([serviceCmdPath.cmd, 'nagios', 'status'])
+    if rc == 0:
+        return True
+    else:
+        return False
 
 
 if __name__ == '__main__':
@@ -133,4 +147,6 @@ if __name__ == '__main__':
         clusterdata)
     print " Cluster configurations re-synced successfully from host %s" % \
           (args.hostip)
-    __restartNagios()
+    if _isNagiosRunning():
+        _restartNagios()
+    sys.exit(utils.PluginStatusCode.OK)
