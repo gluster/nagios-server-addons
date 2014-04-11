@@ -120,6 +120,8 @@ class GlusterNagiosConfManager:
             volumeServices.append(volumeService)
             volumeService = self.__createVolumeQuotaStatusService(volume,
                                                                   clusterName)
+            volumeService = self.__createVolumeStatusService(volume,
+                                                             clusterName)
             volumeServices.append(volumeService)
         return volumeServices
 
@@ -127,19 +129,18 @@ class GlusterNagiosConfManager:
         brickService = {}
         brickService['use'] = 'brick-service'
         brickService['host_name'] = hostName
-        serviceDesc = "Brick-%s:%s" % (hostName, brick['brickpath'])
+        serviceDesc = "Brick Utilization - %s:%s" % (hostName,
+                                                     brick['brickpath'])
         brickService['service_description'] = serviceDesc
-        brickService['display_name'] = serviceDesc
         brickService['_BRICK_DIR'] = brick['brickpath']
         return brickService
 
     def __createBrickStatusService(self, brick, hostName):
         brickService = {}
-        brickService['use'] = 'brick-service'
+        brickService['use'] = 'gluster-passive-service'
         brickService['host_name'] = hostName
-        serviceDesc = "Brick-%s:%s-Status" % (hostName, brick['brickpath'])
+        serviceDesc = "Brick Status - %s:%s" % (hostName, brick['brickpath'])
         brickService['service_description'] = serviceDesc
-        brickService['display_name'] = serviceDesc
         brickService['_BRICK_DIR'] = brick['brickpath']
         return brickService
 
@@ -147,6 +148,9 @@ class GlusterNagiosConfManager:
         brickServices = []
         for brick in host['bricks']:
             brickService = self.__createBrickUtilizationService(
+                brick, host['hostip'])
+            brickServices.append(brickService)
+            brickService = self.__createBrickStatusService(
                 brick, host['hostip'])
             brickServices.append(brickService)
         return brickServices
