@@ -52,13 +52,17 @@ def execNRPECommand(command):
 
 def _getVolumeQuotaStatusOutput(args):
     # get current volume quota status
-    table = livestatus.checkLiveStatus("GET services\n"
-                                       "Columns: status plugin_output\n"
-                                       "Filter: service_description = "
-                                       "Volume Status Quota - " + args.volume)
-    servicestatus = table[0]
-    statusoutput = table[1]
-    if (servicestatus == utils.PluginStatusCode.OK and
+    table = livestatus.readLiveStatus("GET services\n"
+                                      "Columns: state long_plugin_output\n"
+                                      "Filter: description = "
+                                      "Volume Status Quota - %s" % args.volume)
+    servicestatus = utils.PluginStatusCode.UNKNOWN
+    statusoutput = ''
+    if len(table) > 0:
+        servicetab = table[0]
+        servicestatus = servicetab[0]
+        statusoutput = servicetab[1]
+    if (int(servicestatus) == utils.PluginStatusCode.OK and
             statusoutput.find("QUOTA: OK") > -1):
         # if ok, don't poll
         return servicestatus, statusoutput
