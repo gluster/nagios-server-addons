@@ -120,6 +120,7 @@ class GlusterNagiosConfManager:
             volumeServices.append(volumeService)
             volumeService = self.__createVolumeQuotaStatusService(volume,
                                                                   clusterName)
+            volumeServices.append(volumeService)
             volumeService = self.__createVolumeStatusService(volume,
                                                              clusterName)
             volumeServices.append(volumeService)
