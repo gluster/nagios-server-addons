@@ -28,7 +28,6 @@ define host{
         host_name       test-cluster            ; The name of cluster. SHOULD BE SAME AS hostgroup defined above
         alias           test-cluster   ; A longer name to be used for display
         address         dummy            ; IP address of the host
-        check_command                   check_dummy!0
 }
 
 ################################################################################

@@ -50,7 +50,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self.assertEqual(config['host_name'], clusterData['name'])
         self.assertEqual(config['alias'], clusterData['name'])
         self.assertEqual(config['address'], clusterData['name'])
-        self.assertEqual(config['check_command'], "check_dummy")
+        self.assertEqual(config['check_command'], "")
         self.assertEqual(config['use'], 'gluster-cluster')
 
     def createBricks(self, count):

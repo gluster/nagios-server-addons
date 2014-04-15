@@ -1,5 +1,6 @@
 dist_glusternagiosplugins_PYTHON = \
 	constants.py \
+	check_cluster_status.py \
 	check_cluster_vol_usage.py \
 	check_remote_host.py \
 	check_vol_server.py \

@@ -167,7 +167,7 @@ class GlusterNagiosConfManager:
             cluster['name'], cluster['hosts'][-1]['hostip']))
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
-            cluster['name'], "", "check_dummy", clusterServices)
+            cluster['name'], "", "", clusterServices)
         hostsConfigs.append(clusterHostConfig)
         for host in cluster['hosts']:
             brickServices = self.createBrickServices(host)
