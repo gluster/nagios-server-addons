@@ -1,13 +1,14 @@
 #!/usr/bin/python
 import sys
 import commands
+import json
 import random
 import argparse
 import livestatus
 import os
-from glusternagios import utils
 
-_NRPEPath = "/usr/lib64/nagios/plugins/check_nrpe"
+from glusternagios import utils
+from constants import NRPE_PATH
 
 
 def _getListHosts(args):
@@ -42,12 +43,46 @@ def _getVolQuotaStatusNRPECommand(args):
 
 
 def _getNRPEBaseCmd(host):
-    return _NRPEPath + " -H " + host + " -c "
+    return NRPE_PATH + " -H " + host + " -c "
 
 
 def execNRPECommand(command):
     status, output = commands.getstatusoutput(command)
     return os.WEXITSTATUS(status), output
+
+
+def _getVolumeStatusOutput(args):
+    status, output_text = _executeRandomHost(_getVolStatusNRPECommand(args))
+
+    output = output_text
+    # If status OK, volume info will be available as part of the output
+    if status == utils.PluginStatusCode.OK:
+        lines = output_text.split('\n')
+        if len(lines) > 1:
+            output = lines[0]
+            volumes = json.loads(lines[1])
+            volume = volumes[args.volume]
+            criticalBricks = 0
+            for brick in volume['bricks']:
+                brick_status = livestatus.checkLiveStatus(
+                    "GET services\n"
+                    "Columns: state\n"
+                    "Filter: description = "
+                    "Brick Status - %s\n"
+                    % brick)
+                if brick_status and brick_status.strip():
+                    servicestatus = brick_status.strip()
+                    if int(servicestatus) == utils.PluginStatusCode.CRITICAL:
+                        criticalBricks += 1
+
+            if criticalBricks > 0:
+                if volume['brickCount'] == criticalBricks:
+                    status = utils.PluginStatusCode.CRITICAL
+                    output = "All the bricks are in CRITICAL state"
+                else:
+                    status = utils.PluginStatusCode.WARNING
+                    output = "One or more bricks are in CRITICAL state"
+    return status, output
 
 
 def _getVolumeQuotaStatusOutput(args):
@@ -94,7 +129,7 @@ def _executeRandomHost(command):
 def showVolumeOutput(args):
 
     if args.option == 'status':
-        command = _getVolStatusNRPECommand(args)
+        return _getVolumeStatusOutput(args)
     elif args.option == 'utilization':
         command = _getVolUtilizationNRPECommand(args)
     elif args.option == 'quota':
