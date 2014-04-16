@@ -53,20 +53,21 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self.assertEqual(config['check_command'], "")
         self.assertEqual(config['use'], 'gluster-cluster')
 
-    def createBricks(self, count):
+    def createBricks(self, count, volume):
         bricks = []
         for number in range(count):
             brickDir = "/mnt/Brick-%s" % (number + 1)
-            bricks.append({'brickpath': brickDir})
+            bricks.append({'brickpath': brickDir,
+                           'volumeName': volume})
         return bricks
 
     def __createDummyCluster(self):
         cluster = {'name': 'Test-Cluster', 'hosts': [], 'volumes': []}
         cluster['hosts'].append({'hostip': '10.70.43.1',
-                                 'bricks': self.createBricks(1)})
+                                 'bricks': self.createBricks(1, "Volume1")})
         cluster['hosts'].append({'hostip': '10.70.43.2',
-                                 'bricks': self.createBricks(2)})
-        cluster['volumes'].append({'name': 'Volume1', "typeStr": "T"})
+                                 'bricks': self.createBricks(2, "Volume1")})
+        cluster['volumes'].append({'name': 'Volume1', "type": "T"})
         return cluster
 
     def __getGlusterNagiosConfManager(self):

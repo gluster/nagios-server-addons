@@ -67,7 +67,7 @@ class GlusterNagiosConfManager:
         checkCommand = 'check_vol_utilization!%s!%s!70!90' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
-        volumeService['notes'] = "Volume type : %s" % (volume['typeStr'])
+        volumeService['notes'] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def __createVolumeStatusService(self, volume, clusterName):
@@ -80,7 +80,7 @@ class GlusterNagiosConfManager:
         checkCommand = 'check_vol_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
-        volumeService['notes'] = "Volume type : %s" % (volume['typeStr'])
+        volumeService['notes'] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def __createVolumeQuotaStatusService(self, volume, clusterName):
@@ -93,6 +93,7 @@ class GlusterNagiosConfManager:
         checkCommand = 'check_vol_quota_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
+        volumeService['notes'] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def createClusterUtilizationService(self, clusterName):
@@ -134,6 +135,8 @@ class GlusterNagiosConfManager:
                                                      brick['brickpath'])
         brickService['service_description'] = serviceDesc
         brickService['_BRICK_DIR'] = brick['brickpath']
+        brickService['_VOL_NAME'] = brick['volumeName']
+        brickService['notes'] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
     def __createBrickStatusService(self, brick, hostName):
@@ -143,6 +146,8 @@ class GlusterNagiosConfManager:
         serviceDesc = "Brick Status - %s:%s" % (hostName, brick['brickpath'])
         brickService['service_description'] = serviceDesc
         brickService['_BRICK_DIR'] = brick['brickpath']
+        brickService['_VOL_NAME'] = brick['volumeName']
+        brickService['notes'] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
     def createBrickServices(self, host):

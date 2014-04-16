@@ -20,13 +20,11 @@ import argparse
 import commands
 import json
 import datetime
-import re
 import sys
 
 from config_generator import GlusterNagiosConfManager
 from glusternagios import utils
 
-#from glusternagios import utils
 from constants import DEFAULT_AUTO_CONFIG_DIR
 from constants import HOST_TEMPLATE_DIR
 from constants import HOST_TEMPLATE_NAME
@@ -72,11 +70,6 @@ def discoverlogicalcomponents(host):
 
 
 def discovercluster(args):
-    """
-
-    :rtype : None
-    """
-    ipPat = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
     clusterdata = {}
     #Discover the logical components
     componentlist = discoverlogicalcomponents(args.hostip)
@@ -89,12 +82,14 @@ def discovercluster(args):
     #to generate the configuration
     hostlist.append({"hostip": args.hostip})
     for host in hostlist:
-        if(ipPat.match(host['hostip'])):
-            #host.update(discoverhostdetails(host['hostip'], args))
-            #Get the list of bricks for this host and add to dictionary
-            host['bricks'] = \
-                [brick for brick in componentlist['bricks']
-                 if brick["hostip"] == host['hostip']]
+        #host.update(discoverhostdetails(host['hostip'], args))
+        #Get the list of bricks for this host and add to dictionary
+        host['bricks'] = []
+        for volume in componentlist['volumes']:
+            for brick in volume['bricks']:
+                if brick['hostip'] == host['hostip']:
+                    brick['volumeName'] = volume['name']
+                    host['bricks'].append(brick)
     clusterdata['hosts'] = hostlist
     clusterdata['volumes'] = componentlist['volumes']
     clusterdata['name'] = args.cluster
