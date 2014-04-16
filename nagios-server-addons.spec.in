@@ -66,6 +66,7 @@ Requires:         httpd
 Requires:         nagios
 Requires:         nagios-plugins-dummy
 Requires:         nagios-plugins-nrpe
+Requires:         nsca
 Requires:         php
 Requires:         pnp4nagios
 Requires:         python-argparse
