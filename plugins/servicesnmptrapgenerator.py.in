@@ -96,10 +96,10 @@ def formatargs(args):
     #Add quotes to string parameters to handle
     #parameters with multiple words separated with
     #spaces
-    args.nHostname = '''"'''+args.nHostname+'''"'''
-    args.nSvcDesc = '''"'''+args.nSvcDesc+'''"'''
-    args.nSvcGroupName = '''"'''+args.nSvcGroupName+'''"'''
-    args.nSvcOutput = '''"'''+args.nSvcOutput+'''"'''
+    args.nHostname = '''"''' + args.nHostname + '''"'''
+    args.nSvcDesc = '''"''' + args.nSvcDesc + '''"'''
+    args.nSvcGroupName = '''"''' + args.nSvcGroupName + '''"'''
+    args.nSvcOutput = '''"''' + args.nSvcOutput + '''"'''
 
 
 if __name__ == '__main__':

@@ -98,9 +98,9 @@ def formatargs(args):
     #Add quotes to string parameters to handle
     #parameters with multiple words separated with
     #spaces
-    args.nHostname = '''"'''+args.nHostname+'''"'''
-    args.nHostGroupName = '''"'''+args.nHostGroupName+'''"'''
-    args.nHostOutput = '''"'''+args.nHostOutput+'''"'''
+    args.nHostname = '''"''' + args.nHostname + '''"'''
+    args.nHostGroupName = '''"''' + args.nHostGroupName + '''"'''
+    args.nHostOutput = '''"''' + args.nHostOutput + '''"'''
 
 
 if __name__ == '__main__':
