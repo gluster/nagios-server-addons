@@ -76,7 +76,7 @@ def _getVolumeStatusOutput(args):
                         criticalBricks += 1
 
             if criticalBricks > 0:
-                if volume['brickCount'] == criticalBricks:
+                if int(volume['brickCount']) == criticalBricks:
                     status = utils.PluginStatusCode.CRITICAL
                     output = "All the bricks are in CRITICAL state"
                 else:
