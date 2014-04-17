@@ -6,7 +6,7 @@ glusternagiosconf_DATA = \
 	gluster-templates.cfg \
 	gluster-contacts.cfg \
 	host-monitoring-services.in \
-	snmpmanagers.cfg \
+	snmpmanagers.conf \
         $(NULL)
 
 glusternagiosdefaultconfdir = $(sysconfdir)/nagios/gluster/default

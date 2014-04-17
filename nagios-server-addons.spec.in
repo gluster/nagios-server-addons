@@ -196,6 +196,7 @@ fi
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_swap_usage.php
 %attr(0755, -, -) %{_libdir}/nagios/plugins/gluster/*
 %attr(0775, root, nagios) %dir %{_sysconfdir}/nagios/gluster
+%attr(-, root, nagios) %{_sysconfdir}/nagios/gluster/snmpmanagers.conf
 %{_sysconfdir}/nagios/gluster/*
 /usr/share/snmp/mibs/*
 
