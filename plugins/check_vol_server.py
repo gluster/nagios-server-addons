@@ -42,6 +42,10 @@ def _getVolQuotaStatusNRPECommand(args):
     return ("check_vol_quota_status -a " + args.volume)
 
 
+def _getVolSelfHealStatusNRPECommand(args):
+    return ("check_vol_heal_status -a " + args.volume)
+
+
 def _getNRPEBaseCmd(host):
     return NRPE_PATH + " -H " + host + " -c "
 
@@ -134,6 +138,8 @@ def showVolumeOutput(args):
         command = _getVolUtilizationNRPECommand(args)
     elif args.option == 'quota':
         return _getVolumeQuotaStatusOutput(args)
+    elif args.option == 'self-heal':
+        command = _getVolSelfHealStatusNRPECommand(args)
 
     return _executeRandomHost(command)
 
@@ -167,7 +173,8 @@ def parse_input():
                         help='the volume option to check',
                         choices=['utilization',
                                  'status',
-                                 'quota'])
+                                 'quota',
+                                 'self-heal'])
     args = parser.parse_args()
     if args.critical <= args.warning:
         print "UNKNOWN:Critical must be greater than Warning."

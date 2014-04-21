@@ -96,6 +96,18 @@ class GlusterNagiosConfManager:
         volumeService['notes'] = "Volume type : %s" % (volume['type'])
         return volumeService
 
+    def __createVolumeHealStatusService(self, volume, clusterName):
+        volumeService = {}
+        volumeService['host_name'] = clusterName
+        volumeService['use'] = 'gluster-service-without-graph'
+        serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
+        volumeService['service_description'] = serviceDesc
+        volumeService['_VOL_NAME'] = volume['name']
+        checkCommand = 'check_vol_heal_status!%s!%s' % \
+                       (clusterName, volume['name'])
+        volumeService['check_command'] = checkCommand
+        return volumeService
+
     def createClusterUtilizationService(self, clusterName):
         service = {}
         service['host_name'] = clusterName
@@ -122,6 +134,11 @@ class GlusterNagiosConfManager:
             volumeService = self.__createVolumeQuotaStatusService(volume,
                                                                   clusterName)
             volumeServices.append(volumeService)
+            if 'Replicate' in volume['type']:
+                volumeService = (self.
+                                 __createVolumeHealStatusService(volume,
+                                                                 clusterName))
+                volumeServices.append(volumeService)
             volumeService = self.__createVolumeStatusService(volume,
                                                              clusterName)
             volumeServices.append(volumeService)

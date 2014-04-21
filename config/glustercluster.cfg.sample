@@ -111,7 +111,7 @@ define service{
 # Edit this sample
 #    host_name = the cluster host previously defined for cluster
 #    service_description = Volume-status - <volname>
-#    check_command = check_vol_status!<cluster-hostgroup-name>!<volume-name>
+#    check_command = check_vol_quota_status!<cluster-hostgroup-name>!<volume-name>
 #    _VOL_NAME = Volume name
 ################################################################################
 define service{
@@ -120,6 +120,22 @@ define service{
   service_description    Volume Status Quota - data-vol
   _VOL_NAME              data-vol ; MUST DECLARE the custom var _VOL_NAME
   check_command check_vol_quota_status!test-cluster!data-vol
+}
+
+################################################################################
+# This defines a Volume Self Heal status service
+# Edit this sample
+#    host_name = the cluster host previously defined for cluster
+#    service_description = Volume Self-Heal - <volname>
+#    check_command = check_vol_heal_status!<cluster-hostgroup-name>!<volume-name>
+#    _VOL_NAME = Volume name
+################################################################################
+define service{
+  use                    gluster-service-without-graph
+  host_name              test-cluster
+  service_description    Volume Self-Heal - data-vol
+  _VOL_NAME              data-vol ; MUST DECLARE the custom var _VOL_NAME
+  check_command check_vol_heal_status!test-cluster!data-vol
 }
 
 ################################################################################
