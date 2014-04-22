@@ -17,10 +17,10 @@ use             {{host['use']}}
 host_name       {{host['host_name']}}
 alias           {{host['alias']}}
 address         {{host['address']}}
-{% if host['check_command'] != "" -%}
+{% if host['check_command'] is defined -%}
 check_command   {{host['check_command']}}
 {% endif -%}
-{% if host['hostgroups'] != "" -%}
+{% if host['hostgroups'] is defined -%}
 hostgroups      {{host['hostgroups']}}
 {% endif -%}
 }

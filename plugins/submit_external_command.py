@@ -41,15 +41,15 @@ def parse_input():
     return args
 
 
-def _submitExternalCommand(command, hostname, service, dateTime):
-    cmdStr = "[%s] %s;%s;%s;%s\n" % (dateTime, command,
-                                     hostname, service, dateTime)
+def submitExternalCommand(cmdStr):
     with open(NAGIOS_COMMAND_FILE_PATH, "w") as f:
         f.write(cmdStr)
 
 
 if __name__ == '__main__':
     args = parse_input()
-    _submitExternalCommand(args.command, args.hostName,
-                           args.service, args.dateTime)
+    cmdStr = "[%s] %s;%s;%s;%s\n" % (args.dateTime, args.command,
+                                     args.hostName, args.service,
+                                     args.dateTime)
+    submitExternalCommand(cmdStr)
     sys.exit(utils.PluginStatusCode.OK)

@@ -17,72 +17,49 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 import argparse
-import commands
 import json
 import datetime
 import sys
 
-from config_generator import GlusterNagiosConfManager
 from glusternagios import utils
-
+from config_generator import GlusterNagiosConfManager
 from constants import DEFAULT_AUTO_CONFIG_DIR
 from constants import HOST_TEMPLATE_DIR
 from constants import HOST_TEMPLATE_NAME
 from constants import NRPE_PATH
-from constants import NAGIOS_COMMAND_FILE_PATH
+import submit_external_command
 
 
 serviceCmdPath = utils.CommandPath("service", "/sbin/service", )
+nrpeCmdPath = utils.CommandPath("nrpe", NRPE_PATH, )
 
 
-def excecNRPECommand(command):
-    """
-    This function executes NRPE command and return the result
-    """
-    status = commands.getoutput(command)
-    return status
-
-
-def discoverhostdetails(host, args):
-    hostparamsdict = {}
-    command = NRPE_PATH + " -H " + host + " -c discoverhostparams"
-    hostparams = excecNRPECommand(command)
+def excecNRPECommand(host, command):
+    output = {}
+    (returncode, outputStr, err) = utils.execCmd([nrpeCmdPath.cmd,
+                                                  "-H", host, "-c", command])
     #convert to dictionary
     try:
-        hostparamsdict = json.loads(hostparams)
-    except Exception, e:
-        e.args += (hostparams,)
+        output = json.loads(outputStr[0])
+    except Exception as e:
+        e.args += (outputStr[0])
         raise
-    return hostparamsdict
+    return output
 
 
-def discoverlogicalcomponents(host):
-    componentlist = []
-    command = NRPE_PATH + " -H " + host + " -c discoverlogicalcomponents"
-    components = excecNRPECommand(command)
-    try:
-        componentlist = json.loads(components)
-    except Exception, e:
-        e.args += (components,)
-        #print e.args
-        raise
-    return componentlist
-
-
-def discovercluster(args):
+def discoverCluster(hostip, cluster):
     clusterdata = {}
     #Discover the logical components
-    componentlist = discoverlogicalcomponents(args.hostip)
+    componentlist = excecNRPECommand(hostip, "discoverlogicalcomponents")
     #Discover the peers
-    command = NRPE_PATH + " -H " + args.hostip + " -c discoverpeers"
-    hosts = excecNRPECommand(command)
-    hostlist = json.loads(hosts)
-
+    hostlist = excecNRPECommand(hostip, "discoverpeers")
     #Add the ip address of the root node to the peer list
     #to generate the configuration
-    hostlist.append({"hostip": args.hostip})
+    hostlist.append({"hostip": hostip})
     for host in hostlist:
-        #host.update(discoverhostdetails(host['hostip'], args))
+        #Get host names
+        hostDetails = excecNRPECommand(host['hostip'], "discoverhostparams")
+        host.update(hostDetails)
         #Get the list of bricks for this host and add to dictionary
         host['bricks'] = []
         for volume in componentlist['volumes']:
@@ -92,8 +69,25 @@ def discovercluster(args):
                     host['bricks'].append(brick)
     clusterdata['hosts'] = hostlist
     clusterdata['volumes'] = componentlist['volumes']
-    clusterdata['name'] = args.cluster
+    clusterdata['name'] = cluster
+    if not isHostsNamesUnique(clusterdata):
+        setHostNameWithIP(clusterdata)
     return clusterdata
+
+
+def setHostNameWithIP(clusterdata):
+    for host in clusterdata['hosts']:
+        host['hostname'] = host['hostip']
+
+
+def isHostsNamesUnique(clusterdata):
+    hostnames = {}
+    for host in clusterdata['hosts']:
+        if hostnames.get(host['hostname']) is None:
+            hostnames[host['hostname']] = host['hostip']
+        else:
+            return False
+    return True
 
 
 def parse_input():
@@ -122,8 +116,7 @@ def getConfigManager(args):
 def _restartNagios():
     now = datetime.datetime.now()
     cmdStr = "[%s] RESTART_PROGRAM\n" % (now)
-    with open(NAGIOS_COMMAND_FILE_PATH, "w") as f:
-        f.write(cmdStr)
+    submit_external_command.submitExternalCommand(cmdStr)
 
 
 def _isNagiosRunning():
@@ -136,7 +129,7 @@ def _isNagiosRunning():
 
 if __name__ == '__main__':
     args = parse_input()
-    clusterdata = discovercluster(args)
+    clusterdata = discoverCluster(args.hostip, args.cluster)
     configManager = getConfigManager(args)
     clusterConfing = configManager.generateNagiosConfigFromGlusterCluster(
         clusterdata)

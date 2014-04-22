@@ -41,8 +41,8 @@ class TestGlusterNagiosConfManager(TestCaseBase):
                                     clusterData['hosts'][index])
 
     def __verifyHostConfig(self, hostConfig, hostData):
-        self.assertEqual(hostConfig['host_name'], hostData['hostip'])
-        self.assertEqual(hostConfig['alias'], hostData['hostip'])
+        self.assertEqual(hostConfig['host_name'], hostData['hostname'])
+        self.assertEqual(hostConfig['alias'], hostData['hostname'])
         self.assertEqual(hostConfig['address'], hostData['hostip'])
         self.assertEqual(hostConfig['use'], 'gluster-host')
 
@@ -50,23 +50,28 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self.assertEqual(config['host_name'], clusterData['name'])
         self.assertEqual(config['alias'], clusterData['name'])
         self.assertEqual(config['address'], clusterData['name'])
-        self.assertEqual(config['check_command'], "")
+        self.assertEqual(config.get('check_command'), None)
         self.assertEqual(config['use'], 'gluster-cluster')
 
-    def createBricks(self, count, volume):
+    def createBricks(self, count, volume, hostip):
         bricks = []
         for number in range(count):
             brickDir = "/mnt/Brick-%s" % (number + 1)
             bricks.append({'brickpath': brickDir,
-                           'volumeName': volume})
+                           'volumeName': volume,
+                           'hostip': hostip})
         return bricks
 
     def __createDummyCluster(self):
         cluster = {'name': 'Test-Cluster', 'hosts': [], 'volumes': []}
         cluster['hosts'].append({'hostip': '10.70.43.1',
-                                 'bricks': self.createBricks(1, "Volume1")})
+                                 'hostname': 'host-1',
+                                 'bricks': self.createBricks(1, "Volume1",
+                                                             '10.70.43.1')})
         cluster['hosts'].append({'hostip': '10.70.43.2',
-                                 'bricks': self.createBricks(2, "Volume1")})
+                                 'hostname': 'host-2',
+                                 'bricks': self.createBricks(2, "Volume1",
+                                                             '10.70.43.2')})
         cluster['volumes'].append({'name': 'Volume1', "type": "T"})
         return cluster
 

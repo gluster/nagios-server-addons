@@ -48,12 +48,12 @@ class GlusterNagiosConfManager:
         host['alias'] = alias
         host['use'] = template
         host['address'] = address
-        if checkCommand is not None:
+        if checkCommand:
             host['check_command'] = checkCommand
-        if hostGroups is not None:
+        if hostGroups:
             host['hostgroups'] = hostGroups
 
-        if services is not None:
+        if services:
             host['host_services'] = services
         return host
 
@@ -143,7 +143,8 @@ class GlusterNagiosConfManager:
         brickService = {}
         brickService['use'] = 'gluster-brick-passive-service'
         brickService['host_name'] = hostName
-        serviceDesc = "Brick Status - %s:%s" % (hostName, brick['brickpath'])
+        serviceDesc = "Brick Status - %s:%s" % (hostName,
+                                                brick['brickpath'])
         brickService['service_description'] = serviceDesc
         brickService['_BRICK_DIR'] = brick['brickpath']
         brickService['_VOL_NAME'] = brick['volumeName']
@@ -154,10 +155,10 @@ class GlusterNagiosConfManager:
         brickServices = []
         for brick in host['bricks']:
             brickService = self.__createBrickUtilizationService(
-                brick, host['hostip'])
+                brick, host['hostname'])
             brickServices.append(brickService)
             brickService = self.__createBrickStatusService(
-                brick, host['hostip'])
+                brick, host['hostname'])
             brickServices.append(brickService)
         return brickServices
 
@@ -173,13 +174,13 @@ class GlusterNagiosConfManager:
             cluster['name'], cluster['hosts'][-1]['hostip']))
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
-            cluster['name'], "", "", clusterServices)
+            cluster['name'], None, None, clusterServices)
         hostsConfigs.append(clusterHostConfig)
         for host in cluster['hosts']:
             brickServices = self.createBrickServices(host)
             hostGroups = "gluster_hosts,%s" % (cluster['name'])
             hostConfig = self.createHost(
-                host['hostip'], host['hostip'], "gluster-host",
+                host['hostname'], host['hostname'], "gluster-host",
                 host['hostip'], hostGroups, "", brickServices)
             hostsConfigs.append(hostConfig)
         self.generateConfigFiles(hostsConfigs)
@@ -205,7 +206,7 @@ class GlusterNagiosConfManager:
         os.mkdir(confDir)
 
     def __writeHostConfig(self, clusterConfigDir, hostConfig):
-        if clusterConfigDir is None:
+        if not clusterConfigDir:
             raise Exception("Cluster configuration directory can't None")
         configFilePath = clusterConfigDir + "/" + hostConfig['name'] + ".cfg"
         with open(configFilePath, 'w') as configFile:
