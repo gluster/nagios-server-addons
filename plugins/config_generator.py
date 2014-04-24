@@ -171,7 +171,7 @@ class GlusterNagiosConfManager:
             clusterServices.append(self.createClusterUtilizationService(
                 cluster['name']))
         clusterServices.append(self.createClusterAutoConfigService(
-            cluster['name'], cluster['hosts'][-1]['hostip']))
+            cluster['name'], cluster['hosts'][0]['hostip']))
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
             cluster['name'], None, None, clusterServices)

@@ -16,7 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
-import mock
 from plugins import discovery
 from testrunner import PluginsTestCase as TestCaseBase
 
@@ -45,7 +44,8 @@ class TestDiscovery(TestCaseBase):
 
     def _getPeers(self):
         result = []
-        result.append({"hostip": "172.16.53.2"})
+        result.append({"hostip": "lo", "uuid": "0000-1111"})
+        result.append({"hostip": "172.16.53.2", "uuid": "0000-1112"})
         return result
 
     def _getHostParams(self, hostip):
@@ -56,9 +56,8 @@ class TestDiscovery(TestCaseBase):
 
     def _verifyClusterData(self, clusterdata, clusterName, host):
 
-        self.assertEqual(clusterdata['hosts'][0]['hostip'],
-                         self._getPeers()[0]['hostip'])
-        self.assertEqual(clusterdata['hosts'][1]['hostip'], host)
+        self.assertEqual(clusterdata['name'], clusterName)
+        self.assertEqual(clusterdata['hosts'][0]['hostip'], host)
         for host in clusterdata['hosts']:
             hostDetails = self._getHostParams(host['hostip'])
             self.assertEqual(host['hostname'], hostDetails['hostname'])

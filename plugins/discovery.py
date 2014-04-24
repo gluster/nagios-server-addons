@@ -55,7 +55,7 @@ def discoverCluster(hostip, cluster):
     hostlist = excecNRPECommand(hostip, "discoverpeers")
     #Add the ip address of the root node to the peer list
     #to generate the configuration
-    hostlist.append({"hostip": hostip})
+    hostlist[0]['hostip'] = hostip
     for host in hostlist:
         #Get host names
         hostDetails = excecNRPECommand(host['hostip'], "discoverhostparams")
@@ -64,7 +64,7 @@ def discoverCluster(hostip, cluster):
         host['bricks'] = []
         for volume in componentlist['volumes']:
             for brick in volume['bricks']:
-                if brick['hostip'] == host['hostip']:
+                if brick['hostUuid'] == host['uuid']:
                     brick['volumeName'] = volume['name']
                     host['bricks'].append(brick)
     clusterdata['hosts'] = hostlist
