@@ -108,6 +108,18 @@ class GlusterNagiosConfManager:
         volumeService['check_command'] = checkCommand
         return volumeService
 
+    def __createVolumeGeoRepStatusService(self, volume, clusterName):
+        volumeService = {}
+        volumeService['host_name'] = clusterName
+        volumeService['use'] = 'gluster-service-without-graph'
+        serviceDesc = 'Volume Geo-Replication - %s' % (volume['name'])
+        volumeService['service_description'] = serviceDesc
+        volumeService['_VOL_NAME'] = volume['name']
+        checkCommand = 'check_vol_georep_status!%s!%s' % \
+                       (clusterName, volume['name'])
+        volumeService['check_command'] = checkCommand
+        return volumeService
+
     def createClusterUtilizationService(self, clusterName):
         service = {}
         service['host_name'] = clusterName
@@ -140,6 +152,10 @@ class GlusterNagiosConfManager:
                                  __createVolumeHealStatusService(volume,
                                                                  clusterName))
                 volumeServices.append(volumeService)
+            volumeService = (self.
+                             __createVolumeGeoRepStatusService(volume,
+                                                               clusterName))
+            volumeServices.append(volumeService)
             volumeService = self.__createVolumeStatusService(volume,
                                                              clusterName)
             volumeServices.append(volumeService)

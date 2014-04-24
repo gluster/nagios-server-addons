@@ -65,7 +65,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self._verifyClusterServices(config, clusterData)
 
     def _verifyClusterServices(self, clusterConfig, clusterData):
-        self.assertEqual(len(clusterConfig['host_services']), 6)
+        self.assertEqual(len(clusterConfig['host_services']), 7)
         for volume in clusterData['volumes']:
             self._verifyVolumeServices(clusterConfig['host_services'], volume)
 
@@ -82,6 +82,10 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         service = self._findServiceInList(serviceList, serviceDesc)
         self.assertNotEqual(service, None,
                             "Volume Status Quota service is not created")
+        serviceDesc = 'Volume Geo-Replication - %s' % (volume['name'])
+        service = self._findServiceInList(serviceList, serviceDesc)
+        self.assertNotEqual(service, None,
+                            "Volume Geo-Replication service is not created")
         if 'Replicate' in volume['type']:
             serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
             service = self._findServiceInList(serviceList, serviceDesc)

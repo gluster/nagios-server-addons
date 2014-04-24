@@ -46,6 +46,10 @@ def _getVolSelfHealStatusNRPECommand(args):
     return ("check_vol_status -a %s %s" % (args.volume, 'self-heal'))
 
 
+def _getVolGeoRepStatusNRPECommand(args):
+    return ("check_vol_status -a %s %s" % (args.volume, 'geo-rep'))
+
+
 def _getNRPEBaseCmd(host):
     return NRPE_PATH + " -H " + host + " -c "
 
@@ -140,6 +144,8 @@ def showVolumeOutput(args):
         return _getVolumeQuotaStatusOutput(args)
     elif args.option == 'self-heal':
         command = _getVolSelfHealStatusNRPECommand(args)
+    elif args.option == 'geo-rep':
+        command = _getVolGeoRepStatusNRPECommand(args)
 
     return _executeRandomHost(command)
 
@@ -174,7 +180,8 @@ def parse_input():
                         choices=['utilization',
                                  'status',
                                  'quota',
-                                 'self-heal'])
+                                 'self-heal',
+                                 'geo-rep'])
     args = parser.parse_args()
     if args.critical <= args.warning:
         print "UNKNOWN:Critical must be greater than Warning."
