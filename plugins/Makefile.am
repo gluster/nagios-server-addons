@@ -12,6 +12,7 @@ dist_glusternagiosplugins_PYTHON = \
 	config_generator.py \
 	servicesnmptrapgenerator.py \
 	submit_external_command.py \
+	server_utils.py \
 	$(NULL)
 
 EXTRA_DIST = \

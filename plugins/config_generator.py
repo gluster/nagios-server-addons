@@ -18,29 +18,28 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
-from jinja2 import Environment, FileSystemLoader
-import os
-import shutil
+from pynag import Model
+
+import server_utils
+
+"""
+Change mode helps to identify the change in the defintion.
+"ADD" means the entity and all its sub entities are added.
+"REMOVE" means the entity and all its sub entities are removed
+"UPDATE" means the entity is changes. It may also means sub entities
+are added or removed to the entity.
+"""
+CHANGE_MODE_ADD = "ADD"
+CHANGE_MODE_REMOVE = "REMOVE"
+CHANGE_MODE_UPDATE = "UPDATE"
 
 
 class GlusterNagiosConfManager:
 
-    def __init__(self, configDir, configTemplateDir, hostTemplateName):
+    def __init__(self, configDir):
         self.configDir = configDir
-        self.configTemplateDir = configTemplateDir
-        self.hostTemplateName = hostTemplateName
-        self.__loadJinja()
 
-    def __loadJinja(self):
-        self.jinjaEnv = Environment(
-            loader=FileSystemLoader(self.configTemplateDir))
-        self.hostTemplate = self.jinjaEnv.get_template(self.hostTemplateName)
-
-    def __createHostConfig(self, host):
-        hostConfigStr = self.hostTemplate.render(host=host)
-        hostConfig = {'name': host['host_name'], 'config': hostConfigStr}
-        return hostConfig
-
+    #Create nagios host configuration with the given attributes
     def createHost(self, hostName, alias, template,
                    address, hostGroups, checkCommand, services):
         host = {}
@@ -52,7 +51,8 @@ class GlusterNagiosConfManager:
             host['check_command'] = checkCommand
         if hostGroups:
             host['hostgroups'] = hostGroups
-
+        #Host service is not a field in host configuration. It helps to
+        #aggregate all the host services under the host
         if services:
             host['host_services'] = services
         return host
@@ -119,12 +119,13 @@ class GlusterNagiosConfManager:
     def createClusterAutoConfigService(self, clusterName, hostIp):
         service = {}
         service['host_name'] = clusterName
-        service['use'] = 'generic-service'
+        service['use'] = 'gluster-service'
+        service['check_interval'] = '1440'
         service['service_description'] = 'Cluster Auto Config'
         service['check_command'] = "gluster_auto_discovery!%s" % (hostIp)
-        service['check_interval'] = '1440'
         return service
 
+    #Create all volume related services for the given volume
     def createrVolumeServices(self, volumes, clusterName):
         volumeServices = []
         for volume in volumes:
@@ -168,6 +169,7 @@ class GlusterNagiosConfManager:
         brickService['notes'] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
+    #Create all Brick related service here.
     def createBrickServices(self, host):
         brickServices = []
         for brick in host['bricks']:
@@ -179,7 +181,20 @@ class GlusterNagiosConfManager:
             brickServices.append(brickService)
         return brickServices
 
-    def generateNagiosConfigFromGlusterCluster(self, cluster):
+    #Create a host group with the name
+    def createHostGroup(self, name):
+        return {'hostgroup_name': name, 'alias': name}
+
+    #Create the Nagios configuration model in run time using list and
+    #dictionary
+    #Nagios config model hierarchy
+    #########################################################################
+    #Hostgroup
+    #  --'_host' ---> List of host configurations in the host group
+    #    --'host_services' ----> List of services in the host
+    #########################################################################
+    def generateNagiosConfig(self, cluster):
+        hostGroup = self.createHostGroup(cluster['name'])
         hostsConfigs = []
         clusterServices = self.createrVolumeServices(
             cluster.get('volumes'), cluster['name'])
@@ -189,42 +204,107 @@ class GlusterNagiosConfManager:
                 cluster['name']))
         clusterServices.append(self.createClusterAutoConfigService(
             cluster['name'], cluster['hosts'][0]['hostip']))
+        #Create host config for Gluster cluster with volume related services
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
             cluster['name'], None, None, clusterServices)
         hostsConfigs.append(clusterHostConfig)
+        #Create host config for all hosts in the cluster with brick related
+        #services
         for host in cluster['hosts']:
             brickServices = self.createBrickServices(host)
             hostGroups = "gluster_hosts,%s" % (cluster['name'])
             hostConfig = self.createHost(
                 host['hostname'], host['hostname'], "gluster-host",
-                host['hostip'], hostGroups, "", brickServices)
+                host['hostip'], hostGroups, None, brickServices)
             hostsConfigs.append(hostConfig)
-        self.generateConfigFiles(hostsConfigs)
-        return hostsConfigs
 
-    def generateConfigFiles(self, hosts):
-        clusterConfig = {'name': None, 'hostConfigs': []}
-        clusterConfigDir = None
+        hostGroup["_hosts"] = hostsConfigs
+        return hostGroup
+
+    #Get the config file name for the given hostname
+    def getCfgFileName(self, hostname):
+        return self.configDir + "/" + hostname + ".cfg"
+
+    #Create Nagios config service for the given host group with all hosts.
+    #Host group should contain the delta to be written to the configuration.
+    #Delta will be processed using the change mode.
+    def writeHostGroup(self, hostgroup):
+        changeMode = hostgroup['changeMode']
+        if changeMode == CHANGE_MODE_ADD:
+            hostgroupModel = Model.Hostgroup()
+            hostgroupModel['hostgroup_name'] = hostgroup['hostgroup_name']
+            hostgroupModel['alias'] = hostgroup['alias']
+            hostgroupModel.set_filename(
+                self.getCfgFileName(hostgroup['hostgroup_name']))
+            hostgroupModel.save()
+        #Process all the hosts in the hostgroup. ChangeMode of the hostgroup
+        #will be used to proces the host if there is not changeMode specified
+        #in the host.
+        if hostgroup['_hosts']:
+            self.writeHosts(hostgroup['_hosts'], changeMode)
+
+    #Fill the pynag model with the given values.
+    #'changeMode' and 'host_services' are special fields which are
+    #not meant to be writen to the nagios config, These fields are
+    #used to represent the config model and changes.
+    def fillModel(self, model, values):
+        for key, value in values.iteritems():
+            if key not in ['changeMode', 'host_services']:
+                model[key] = value
+        return model
+
+    #Write service to nagios config
+    def writeService(self, service, hostname):
+        if service['changeMode'] == CHANGE_MODE_ADD:
+            serviceModel = Model.Service()
+            serviceModel = self.fillModel(serviceModel, service)
+            serviceModel.set_filename(self.getCfgFileName(hostname))
+            serviceModel.save()
+        elif service['changeMode'] == CHANGE_MODE_REMOVE:
+            serviceModel = Model.Service.objects.filter(
+                host_name=hostname,
+                service_description=service['service_description'])
+            if serviceModel:
+                serviceModel[0].delete()
+        elif service['changeMode'] == CHANGE_MODE_UPDATE:
+            serviceModel = server_utils.getServiceConfig(
+                service['service_description'], service['host_name'])
+            self.fillModel(serviceModel, service)
+            serviceModel.save()
+
+    #Write all services in the host.
+    #host_services filed contains the list of services to be written to
+    #nagios configuration
+    def writeHostServices(self, host):
+        for service in host['host_services']:
+            if service.get('changeMode') is None:
+                service['changeMode'] = host['changeMode']
+            self.writeService(service, host['host_name'])
+
+    #Write the host configuration with list of services to nagios configuration
+    def writeHost(self, host):
+        if host['changeMode'] == CHANGE_MODE_REMOVE:
+            hostModel = Model.Host.objects.filter(
+                host_name=host['host_name'])
+            if hostModel:
+                hostModel[0].delete(recursive=True)
+            return
+        if host['changeMode'] == CHANGE_MODE_ADD:
+            hostModel = Model.Host()
+            hostModel = self.fillModel(hostModel, host)
+            hostModel.set_filename(self.getCfgFileName(host['host_name']))
+            hostModel.save()
+
+        if host['host_services']:
+            self.writeHostServices(host)
+
+    def writeHosts(self, hosts, chageMode):
         for host in hosts:
-            if host['use'] == 'gluster-cluster':
-                clusterConfigDir = self.configDir + "/" + host['host_name']
-                self.__prepareConfDir(clusterConfigDir)
-                clusterConfig['name'] = host['host_name']
-            hostConfig = self.__createHostConfig(host)
-            clusterConfig['hostConfigs'].append(hostConfig)
-        for hostConfig in clusterConfig['hostConfigs']:
-            self.__writeHostConfig(clusterConfigDir, hostConfig)
+            if host.get('changeMode') is None:
+                host['changeMode'] = chageMode
+            self.writeHost(host)
 
-    def __prepareConfDir(self, confDir):
-        if os.path.exists(confDir):
-            # Deleting the config dir to write new configs
-            shutil.rmtree(confDir)
-        os.mkdir(confDir)
-
-    def __writeHostConfig(self, clusterConfigDir, hostConfig):
-        if not clusterConfigDir:
-            raise Exception("Cluster configuration directory can't None")
-        configFilePath = clusterConfigDir + "/" + hostConfig['name'] + ".cfg"
-        with open(configFilePath, 'w') as configFile:
-            configFile.write(hostConfig['config'])
+    #Write the hostgroup delta to nagios configuration.
+    def generateConfigFiles(self, delta):
+        self.writeHostGroup(delta)

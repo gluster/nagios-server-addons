@@ -50,10 +50,10 @@ BuildRequires:    python-netaddr
 BuildRequires:    libselinux-python
 BuildRequires:    python-nose
 BuildRequires:    python-devel
-BuildRequires:    python-jinja2
 BuildRequires:    python-argparse
 BuildRequires:    python-ethtool
 BuildRequires:    gluster-nagios-common
+BuildRequires:    pynag
 %if ( 0%{?_with_systemd:1} )
 BuildRequires:    systemd-units
 Requires(post):   systemd-units
@@ -82,7 +82,7 @@ Requires:         python-pthreading
 Requires:         python-inotify
 Requires:         libselinux-python
 Requires:         rrdtool-perl
-Requires:         python-jinja2
+Requires:         pynag
 Requires:         net-snmp-utils
 
 %description

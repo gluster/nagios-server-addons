@@ -16,42 +16,85 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
-import mock
 from plugins import config_generator
 from testrunner import PluginsTestCase as TestCaseBase
 
 
 class TestGlusterNagiosConfManager(TestCaseBase):
     # Method to test the generateNagiosConfigFromGlusterCluster() method
-    @mock.patch('plugins.config_generator.GlusterNagiosConfManager.'
-                'generateConfigFiles')
-    def testGenerateConfigFiles(self, mock_generateConfigFiles):
-        confManager = self.__getGlusterNagiosConfManager()
-        clusterData = self.__createDummyCluster()
-        clusterConfig = confManager.generateNagiosConfigFromGlusterCluster(
+    def testGenerateNagiosConfig(self):
+        confManager = self._getGlusterNagiosConfManager()
+        clusterData = self._createDummyCluster()
+        clusterConfig = confManager.generateNagiosConfig(
             clusterData)
-        mock_generateConfigFiles.assert_called()
-        self.__verifyConfig(clusterConfig, clusterData)
+        self._verifyConfig(clusterConfig, clusterData)
 
-    def __verifyConfig(self, clusterConfig, clusterData):
+    def _verifyConfig(self, clusterConfig, clusterData):
         self.assertTrue(len(clusterConfig), len(clusterData['hosts']) + 1)
-        self.__verifyClusterConfig(clusterConfig[0], clusterData)
+        self._verifyClusterConfig(clusterConfig["_hosts"][0], clusterData)
         for index in range(0, len(clusterData['hosts'])):
-            self.__verifyHostConfig(clusterConfig[index + 1],
-                                    clusterData['hosts'][index])
+            self._verifyHostConfig(clusterConfig['_hosts'][index + 1],
+                                   clusterData['hosts'][index])
 
-    def __verifyHostConfig(self, hostConfig, hostData):
+    def _verifyHostConfig(self, hostConfig, hostData):
         self.assertEqual(hostConfig['host_name'], hostData['hostname'])
         self.assertEqual(hostConfig['alias'], hostData['hostname'])
         self.assertEqual(hostConfig['address'], hostData['hostip'])
         self.assertEqual(hostConfig['use'], 'gluster-host')
+        self._verifyHostServices(hostConfig, hostData)
 
-    def __verifyClusterConfig(self, config, clusterData):
+    def _verifyHostServices(self, hostConfig, hostData):
+        for brick in hostData['bricks']:
+            serviceDesc = "Brick Status - %s:%s" % (hostData['hostname'],
+                                                    brick['brickpath'])
+            service = self._findServiceInList(hostConfig['host_services'],
+                                              serviceDesc)
+            self.assertNotEqual(service, None,
+                                "Brick status service is not created")
+            serviceDesc = "Brick Utilization - %s:%s" % (hostData['hostname'],
+                                                         brick['brickpath'])
+            service = self._findServiceInList(hostConfig['host_services'],
+                                              serviceDesc)
+            self.assertNotEqual(service, None,
+                                "Brick Utilization service is not created")
+
+    def _verifyClusterConfig(self, config, clusterData):
         self.assertEqual(config['host_name'], clusterData['name'])
         self.assertEqual(config['alias'], clusterData['name'])
         self.assertEqual(config['address'], clusterData['name'])
         self.assertEqual(config.get('check_command'), None)
         self.assertEqual(config['use'], 'gluster-cluster')
+        self._verifyClusterServices(config, clusterData)
+
+    def _verifyClusterServices(self, clusterConfig, clusterData):
+        self.assertEqual(len(clusterConfig['host_services']), 6)
+        for volume in clusterData['volumes']:
+            self._verifyVolumeServices(clusterConfig['host_services'], volume)
+
+    def _verifyVolumeServices(self, serviceList, volume):
+        serviceDesc = 'Volume Utilization - %s' % (volume['name'])
+        service = self._findServiceInList(serviceList, serviceDesc)
+        self.assertNotEqual(service, None,
+                            "Volume utilization service is not created")
+        serviceDesc = 'Volume Status - %s' % (volume['name'])
+        service = self._findServiceInList(serviceList, serviceDesc)
+        self.assertNotEqual(service, None,
+                            "Volume Status service is not created")
+        serviceDesc = 'Volume Status Quota - %s' % (volume['name'])
+        service = self._findServiceInList(serviceList, serviceDesc)
+        self.assertNotEqual(service, None,
+                            "Volume Status Quota service is not created")
+        if 'Replicate' in volume['type']:
+            serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
+            service = self._findServiceInList(serviceList, serviceDesc)
+            self.assertNotEqual(service, None,
+                                "Volume Self-Heal service is not created")
+
+    def _findServiceInList(self, serviceList, serviceDescription):
+        for service in serviceList:
+            if service['service_description'] == serviceDescription:
+                return service
+        return None
 
     def createBricks(self, count, volume, hostip):
         bricks = []
@@ -62,7 +105,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
                            'hostip': hostip})
         return bricks
 
-    def __createDummyCluster(self):
+    def _createDummyCluster(self):
         cluster = {'name': 'Test-Cluster', 'hosts': [], 'volumes': []}
         cluster['hosts'].append({'hostip': '10.70.43.1',
                                  'hostname': 'host-1',
@@ -72,9 +115,8 @@ class TestGlusterNagiosConfManager(TestCaseBase):
                                  'hostname': 'host-2',
                                  'bricks': self.createBricks(2, "Volume1",
                                                              '10.70.43.2')})
-        cluster['volumes'].append({'name': 'Volume1', "type": "T"})
+        cluster['volumes'].append({'name': 'Volume1', "type": "Replicate"})
         return cluster
 
-    def __getGlusterNagiosConfManager(self):
-        return config_generator.GlusterNagiosConfManager(
-            "/tmp/nagios/gluster", "../config", "gluster-host.cfg.template")
+    def _getGlusterNagiosConfManager(self):
+        return config_generator.GlusterNagiosConfManager("/tmp/nagios/gluster")
