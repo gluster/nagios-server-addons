@@ -285,7 +285,7 @@ def previewChanges(clusterDelta):
     print "Changes :"
     clusterChangeMode = clusterDelta['changeMode']
     print "Hostgroup %s - %s" % (clusterDelta['hostgroup_name'],
-                                   clusterChangeMode)
+                                 clusterChangeMode)
     for host in clusterDelta['_hosts']:
         if host.get('changeMode'):
             changeMode = host.get('changeMode')
@@ -296,7 +296,7 @@ def previewChanges(clusterDelta):
             if service.get('changeMode'):
                 changeMode = service.get('changeMode')
             print "\t Service - %s -%s " % (service['service_description'],
-                                              changeMode)
+                                            changeMode)
 
 
 #Write the cluster configurations. If force mode is used then it will clean
