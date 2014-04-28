@@ -38,16 +38,22 @@ from config_generator import CHANGE_MODE_UPDATE
 nrpeCmdPath = utils.CommandPath("nrpe", NRPE_PATH, )
 
 
-def excecNRPECommand(host, command):
-    (returncode, outputStr, err) = utils.execCmd([nrpeCmdPath.cmd,
-                                                  "-H", host, "-c", command])
+def excecNRPECommand(host, command, arguments=None, jsonOutput=True):
+    nrpeCmd = [nrpeCmdPath.cmd, "-H", host, "-c", command]
+    if arguments:
+        nrpeCmd.append('-a')
+        nrpeCmd.extend(arguments)
+    (returncode, outputStr, err) = utils.execCmd(nrpeCmd)
     #convert to dictionary
-    try:
-        output = json.loads(outputStr[0])
-    except Exception as e:
-        e.args += (outputStr[0])
-        raise
-    return output
+    if not jsonOutput:
+        return outputStr[0]
+    else:
+        try:
+            output = json.loads(outputStr[0])
+        except Exception as e:
+            e.args += (outputStr[0])
+            raise
+        return output
 
 
 def discoverCluster(hostip, cluster):
@@ -164,9 +170,13 @@ def findDeletedServices(host):
 #Check if auto config is changed. IP address in the check command will change
 #when user runs the auto config using different host.
 def findChangeInAutoConfig(newService, oldService):
-    if newService['check_command'] != oldService['check_command']:
+    newHostIp = newService['check_command'].split('!')[1]
+    oldHostIp = oldService['check_command'].split('!')[1]
+    if newHostIp != oldHostIp:
         changes = {}
-        changes['check_command'] = newService['check_command']
+        checkCommand = oldService['check_command'].split("!")
+        checkCommand[1] = newHostIp
+        changes['check_command'] = "!".join(checkCommand)
         changes['service_description'] = newService['service_description']
         changes['host_name'] = newService['host_name']
         changes['changeMode'] = CHANGE_MODE_UPDATE
@@ -258,6 +268,9 @@ def parse_input():
                         type=str, required=True, help='Cluster name')
     parser.add_argument('-H', '--hostip', action='store', dest='hostip',
                         type=str, required=True, help='Host IP')
+    parser.add_argument('-n', '--nagios', action='store',
+                        dest='nagiosServerIP', type=str, required=False,
+                        help='Nagios Server Address')
     parser.add_argument('-m', '--mode', action='store', dest='mode',
                         choices=['auto', 'manual'], required=False,
                         default='manual', help='Mode')
@@ -299,12 +312,88 @@ def previewChanges(clusterDelta):
                                             changeMode)
 
 
+#Configure the gluster node to send passive check results through NSCA
+def configureNodes(clusterDelta, nagiosServerAddress, mode):
+    for host in clusterDelta['_hosts']:
+        #Only when a new node is added or whole cluster is added freshly.
+        if (host['use'] != 'gluster_cluster') and \
+                (host.get('changeMode') == CHANGE_MODE_ADD or
+                    clusterDelta['changeMode'] == CHANGE_MODE_ADD):
+            if not nagiosServerAddress:
+                #Nagios server address should be specified as arg in auto mode
+                if mode == "manual":
+                    nagiosServerAddress = getNagiosAddress(
+                        clusterDelta['hostgroup_name'])
+                else:
+                    print "Nagios server address is not specified in " \
+                          "'auto' mode"
+                    sys.exit(utils.PluginStatusCode.CRITICAL)
+
+            #Configure the nodes. clusterName, Nagios server address and
+            #host_name is passed as an argument to nrpe command
+            #'configure_gluster_node'
+            excecNRPECommand(
+                host['address'], 'configure_gluster_node',
+                [clusterDelta['hostgroup_name'], nagiosServerAddress,
+                 host['host_name']], False)
+    return nagiosServerAddress
+
+
+#We have to update the cluster auto config service with the nagios
+#server address. This is needed for the auto config to configure nodes in
+#'auto' mode.
+def updateNagiosAddressInAutoConfig(clusterHostConfig, nagiosServerAddress):
+    autoConfigService = findServiceInList(clusterHostConfig['host_services'],
+                                          "Cluster Auto Config")
+    if autoConfigService and nagiosServerAddress:
+        checkCommandParams = autoConfigService['check_command'].split("!")
+        if len(checkCommandParams) == 2:
+            #Nagios server address will the 3rd param
+            checkCommandParams.append(nagiosServerAddress)
+            autoConfigService['check_command'] = "!".join(checkCommandParams)
+
+
 #Write the cluster configurations. If force mode is used then it will clean
 #the config directory before writing the changes.
-def writeDelta(clusterDelta, configManager, force):
+def writeDelta(clusterDelta, configManager, force, nagiosServerAddress, mode):
+    nagiosServerAddress = configureNodes(clusterDelta, nagiosServerAddress,
+                                          mode)
+    #Find the cluster host using host group name
+    clusterHostConfig = findHostInList(clusterDelta['_hosts'],
+                                       clusterDelta['hostgroup_name'])
+    if clusterHostConfig:
+        updateNagiosAddressInAutoConfig(clusterHostConfig, nagiosServerAddress)
     if force:
         cleanConfigDir(configManager.configDir)
     configManager.generateConfigFiles(clusterDelta)
+
+
+def getNagiosAddress(clusterName):
+    #If there is an auto config service exist for the cluster, then we have
+    #to use the previously entered nagios server address
+    autoConfigService = server_utils.getServiceConfig("Cluster Auto Config",
+                                                      clusterName)
+    if autoConfigService:
+        nagiosAddress = autoConfigService['check_command'].split("!")[2]
+        return nagiosAddress
+
+    (returncode, outputStr, err) = utils.execCmd([utils.hostnameCmdPath.cmd,
+                                                  '--fqdn'])
+    if returncode == 0:
+        default = outputStr[0]
+    else:
+        (returncode, outputStr, err) = utils.execCmd(
+            [utils.hostnameCmdPath.cmd, '-I'])
+        if returncode == 0:
+            default = outputStr[0]
+    if default:
+        msg = "Enter Nagios server address [%s]: " % (default.strip())
+    else:
+        msg = "Enter Nagios server address : "
+    ans = raw_input(msg)
+    if not ans:
+        ans = default
+    return ans
 
 
 def getConfirmation(message, default):
@@ -341,7 +430,8 @@ if __name__ == '__main__':
         confirmation = getConfirmation(
             "Are you sure, you want to commit the changes?", "Yes")
         if confirmation:
-            writeDelta(clusterDelta, configManager, args.force)
+            writeDelta(clusterDelta, configManager, args.force,
+                       args.nagiosServerIP, args.mode)
             print "Cluster configurations synced successfully from host %s" % \
                   (args.hostip)
             #If Nagios is running then try to restart. Otherwise don't do
@@ -357,7 +447,8 @@ if __name__ == '__main__':
                 print "Start the Nagios service to monitor"
     #auto mode means write the configurations without asking confirmation
     elif args.mode == "auto":
-        writeDelta(clusterDelta, configManager, args.force)
+        writeDelta(clusterDelta, configManager, args.force,
+                   args.nagiosServerIP, args.mode)
         print "Cluster configurations synced successfully from host %s" % \
               (args.hostip)
         if server_utils.isNagiosRunning():
