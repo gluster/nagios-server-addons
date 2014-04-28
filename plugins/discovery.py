@@ -158,7 +158,7 @@ def findDeletedServices(host):
     deletedService = []
     serviceConfigs = server_utils.getServiceConfigByHost(host['host_name'])
     for serviceConfig in serviceConfigs:
-        service = findServiceInList(host['host_services'],
+        service = findServiceInList(host.get('host_services', []),
                                     serviceConfig['service_description'])
         if service is None:
             deletedService.append(
@@ -190,7 +190,7 @@ def findChangeInAutoConfig(newService, oldService):
 #have to update the host ip in existing auto-config service.
 def findServiceDelta(host):
     serviceDelta = []
-    for service in host['host_services']:
+    for service in host.get('host_services', []):
         serviceConfig = server_utils.getServiceConfig(
             service['service_description'], service['host_name'])
         if serviceConfig is None:
@@ -305,7 +305,7 @@ def previewChanges(clusterDelta):
         else:
             changeMode = clusterChangeMode
         print "Host %s - %s" % (host['host_name'], changeMode)
-        for service in host.get('host_services'):
+        for service in host.get('host_services', []):
             if service.get('changeMode'):
                 changeMode = service.get('changeMode')
             print "\t Service - %s -%s " % (service['service_description'],
@@ -316,9 +316,9 @@ def previewChanges(clusterDelta):
 def configureNodes(clusterDelta, nagiosServerAddress, mode):
     for host in clusterDelta['_hosts']:
         #Only when a new node is added or whole cluster is added freshly.
-        if (host['use'] != 'gluster_cluster') and \
-                (host.get('changeMode') == CHANGE_MODE_ADD or
-                    clusterDelta['changeMode'] == CHANGE_MODE_ADD):
+        if (clusterDelta.get('changeMode') == CHANGE_MODE_ADD or \
+                        host.get('changeMode') == CHANGE_MODE_ADD) \
+                and (host['use'] != 'gluster_cluster'):
             if not nagiosServerAddress:
                 #Nagios server address should be specified as arg in auto mode
                 if mode == "manual":

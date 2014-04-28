@@ -294,7 +294,7 @@ class GlusterNagiosConfManager:
             hostModel.set_filename(self.getCfgFileName(host['host_name']))
             hostModel.save()
 
-        if host['host_services']:
+        if host.get('host_services'):
             self.writeHostServices(host)
 
     def writeHosts(self, hosts, chageMode):
