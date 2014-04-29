@@ -45,14 +45,12 @@ class TestGlusterNagiosConfManager(TestCaseBase):
 
     def _verifyHostServices(self, hostConfig, hostData):
         for brick in hostData['bricks']:
-            serviceDesc = "Brick Status - %s:%s" % (hostData['hostname'],
-                                                    brick['brickpath'])
+            serviceDesc = "Brick Status - %s" % brick['brickpath']
             service = self._findServiceInList(hostConfig['host_services'],
                                               serviceDesc)
             self.assertNotEqual(service, None,
                                 "Brick status service is not created")
-            serviceDesc = "Brick Utilization - %s:%s" % (hostData['hostname'],
-                                                         brick['brickpath'])
+            serviceDesc = "Brick Utilization - %s" % brick['brickpath']
             service = self._findServiceInList(hostConfig['host_services'],
                                               serviceDesc)
             self.assertNotEqual(service, None,

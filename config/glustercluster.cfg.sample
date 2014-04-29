@@ -50,28 +50,32 @@ define host{
 # This defines a Brick utilization service
 # Edit this sample
 #    host_name = host the brick is on
-#    service_description = brick name of form serverip:brickdir
+#    service_description = Brick Utilization - <brickdir>
 #    _BRICK_DIR = Path to brick on server
+#    _VOL_NAME  = Volume name the brick is part of
 ################################################################################
 define service {
-  use brick-service
-  host_name host.ipaddress1
-  service_description Brick Utilization - host.ipaddress1:/bricks/b1
-  _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+  use                   brick-service
+  host_name             host.ipaddress1
+  service_description   Brick Utilization - /bricks/b1
+  _BRICK_DIR            /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+  _VOL_NAME             Vol-1
 }
 
 ################################################################################
 # This defines a Brick Status service
 # Edit this sample
 #    host_name = host the brick is on
-#    service_description = brick name of form serverip:brickdir
+#    service_description = Brick Status - <brickdir>
 #    _BRICK_DIR = Path to brick on server
+#    _VOL_NAME  = Volume name the brick is part of
 ################################################################################
 define service {
-  use brick-passive-service
-  host_name host.ipaddress1
-  service_description Brick Status - host.ipaddress1:/bricks/b1
-  _BRICK_DIR  /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+  use                   brick-passive-service
+  host_name             host.ipaddress1
+  service_description   Brick Status - /bricks/b1
+  _BRICK_DIR            /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
+  _VOL_NAME             Vol-1
 }
 
 ################################################################################
