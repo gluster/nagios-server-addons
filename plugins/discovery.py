@@ -18,7 +18,7 @@
 #
 import argparse
 import json
-
+import datetime
 import os
 import shutil
 import sys
@@ -26,6 +26,7 @@ import sys
 from glusternagios import utils
 from config_generator import GlusterNagiosConfManager
 import server_utils
+import submit_external_command
 from constants import DEFAULT_AUTO_CONFIG_DIR
 from constants import NRPE_PATH
 
@@ -307,23 +308,32 @@ def cleanConfigDir(dir):
     os.mkdir(dir)
 
 
-#Preview the changes to cluster config
-def previewChanges(clusterDelta):
-    print "Changes :"
+#Create a summary for mail notification. "\n" should be preserved in the
+#string to get the proper format in mail.
+def getSummary(clusterDelta):
+    summary = "\nChanges :"
     clusterChangeMode = clusterDelta['changeMode']
-    print "Hostgroup %s - %s" % (clusterDelta['hostgroup_name'],
-                                 clusterChangeMode)
+    summary += "\nHostgroup %s - %s" % (clusterDelta['hostgroup_name'],
+                                        clusterChangeMode)
     for host in clusterDelta['_hosts']:
         if host.get('changeMode'):
             changeMode = host.get('changeMode')
         else:
             changeMode = clusterChangeMode
-        print "Host %s - %s" % (host['host_name'], changeMode)
+        summary += "\nHost %s - %s" % (host['host_name'], changeMode)
         for service in host.get('host_services', []):
             if service.get('changeMode'):
                 changeMode = service.get('changeMode')
-            print "\t Service - %s -%s " % (service['service_description'],
-                                            changeMode)
+            summary += "\n\t Service - %s -%s " % \
+                       (service['service_description'], changeMode)
+    return summary
+
+
+def formatTextForMail(text):
+    output = ""
+    for line in text.splitlines():
+        output += "\\n%s" % line
+    return output
 
 
 #Configure the gluster node to send passive check results through NSCA
@@ -423,6 +433,15 @@ def getConfirmation(message, default):
         if ans == 'NO':
             return False
 
+
+#Send a custom notification about the config changes to admin
+def sendCustomNotification(cluster, summary):
+    now = datetime.datetime.now()
+    cmdStr = "[%s] SEND_CUSTOM_SVC_NOTIFICATION;%s;Cluster Auto Config;0;" \
+             "Nagios Admin;%s\n" % (now, cluster, summary)
+    submit_external_command.submitExternalCommand(cmdStr)
+
+
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster)
@@ -440,7 +459,7 @@ if __name__ == '__main__':
     #before writing the config file and before restarting the Nagios
     if args.mode == "manual":
         print "Cluster configurations changed"
-        previewChanges(clusterDelta)
+        print getSummary(clusterDelta)
         confirmation = getConfirmation(
             "Are you sure, you want to commit the changes?", "Yes")
         if confirmation:
@@ -463,8 +482,11 @@ if __name__ == '__main__':
     elif args.mode == "auto":
         writeDelta(clusterDelta, configManager, args.force,
                    args.nagiosServerIP, args.mode)
-        print "Cluster configurations synced successfully from host %s" % \
+        msg = "Cluster configurations synced successfully from host %s" % \
               (args.hostip)
+        print msg
+        msg += formatTextForMail(getSummary(clusterDelta))
+        sendCustomNotification(args.cluster, msg)
         if server_utils.isNagiosRunning():
             server_utils.restartNagios()
     sys.exit(utils.PluginStatusCode.OK)
