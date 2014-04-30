@@ -60,36 +60,28 @@ def execNRPECommand(command):
 
 
 def _getVolumeStatusOutput(args):
-    status, output_text = _executeRandomHost(_getVolStatusNRPECommand(args))
+    status, output = _executeRandomHost(_getVolStatusNRPECommand(args))
 
-    output = output_text
-    # If status OK, volume info will be available as part of the output
     if status == utils.PluginStatusCode.OK:
-        lines = output_text.split('\n')
-        if len(lines) > 1:
-            output = lines[0]
-            volumes = json.loads(lines[1])
-            volume = volumes[args.volume]
-            criticalBricks = 0
-            for brick in volume['bricks']:
-                brick_status = livestatus.checkLiveStatus(
-                    "GET services\n"
-                    "Columns: state\n"
-                    "Filter: description = "
-                    "Brick Status - %s\n"
-                    % brick)
-                if brick_status and brick_status.strip():
-                    servicestatus = brick_status.strip()
-                    if int(servicestatus) == utils.PluginStatusCode.CRITICAL:
-                        criticalBricks += 1
-
-            if criticalBricks > 0:
-                if int(volume['brickCount']) == criticalBricks:
-                    status = utils.PluginStatusCode.CRITICAL
-                    output = "All the bricks are in CRITICAL state"
-                else:
-                    status = utils.PluginStatusCode.WARNING
-                    output = "One or more bricks are in CRITICAL state"
+        #Following query will return the output in format [[2,0]]
+        #no.of bricks in OK state - 2 , CRITICAL state - 0
+        brick_states_output = livestatus.readLiveStatusAsJSON(
+            "GET services\n"
+            "Filter: host_groups >= %s\n"
+            "Filter: custom_variable_values >= %s\n"
+            "Filter: description ~ Brick Status - \n"
+            "Stats: state = 0\n"
+            "Stats: state = 2\n"
+            % (args.hostgroup, args.volume))
+        brick_states = json.loads(brick_states_output)
+        bricks_ok = brick_states[0][0]
+        bricks_critical = brick_states[0][1]
+        if bricks_ok == 0 and bricks_critical > 0:
+            status = utils.PluginStatusCode.CRITICAL
+            output = "All the bricks are in CRITICAL state"
+        elif bricks_critical > 0:
+            status = utils.PluginStatusCode.WARNING
+            output = "One or more bricks are in CRITICAL state"
     return status, output
 
 

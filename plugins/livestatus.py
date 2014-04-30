@@ -41,11 +41,29 @@ def readLiveStatus(cmd):
     s.shutdown(socket.SHUT_WR)
 
     # Read the answer
-    answer = s.recv(1000)
+    answer = s.recv(8192)
     # Parse the answer into a table
     table = [line.split('|') for line in answer.split('\n')[:-1]]
 
     return table
+
+
+def readLiveStatusAsJSON(cmd):
+    cmd += "OutputFormat: json\n"
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(_socketPath)
+
+    # Write command to socket
+    s.send(cmd)
+
+    # Close socket
+    s.shutdown(socket.SHUT_WR)
+
+    # Read the answer
+    answer = s.recv(8192)
+
+    # return the result
+    return answer
 
 
 def checkLiveStatus(cmd):
