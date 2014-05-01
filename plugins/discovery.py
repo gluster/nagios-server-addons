@@ -316,8 +316,8 @@ def previewChanges(clusterDelta):
 def configureNodes(clusterDelta, nagiosServerAddress, mode):
     for host in clusterDelta['_hosts']:
         #Only when a new node is added or whole cluster is added freshly.
-        if (clusterDelta.get('changeMode') == CHANGE_MODE_ADD or \
-                        host.get('changeMode') == CHANGE_MODE_ADD) \
+        if (clusterDelta.get('changeMode') == CHANGE_MODE_ADD or
+                host.get('changeMode') == CHANGE_MODE_ADD) \
                 and (host['use'] != 'gluster_cluster'):
             if not nagiosServerAddress:
                 #Nagios server address should be specified as arg in auto mode
@@ -357,7 +357,7 @@ def updateNagiosAddressInAutoConfig(clusterHostConfig, nagiosServerAddress):
 #the config directory before writing the changes.
 def writeDelta(clusterDelta, configManager, force, nagiosServerAddress, mode):
     nagiosServerAddress = configureNodes(clusterDelta, nagiosServerAddress,
-                                          mode)
+                                         mode)
     #Find the cluster host using host group name
     clusterHostConfig = findHostInList(clusterDelta['_hosts'],
                                        clusterDelta['hostgroup_name'])
