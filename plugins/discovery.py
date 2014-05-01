@@ -56,6 +56,20 @@ def excecNRPECommand(host, command, arguments=None, jsonOutput=True):
         return output
 
 
+#Discovers volumes info one by one.
+#First it fetches the volumes list and then it fetches the bricks
+#details of volume one by one. Its an work around for size limitation issue
+#in NRPE.
+def discoverVolumes(hostip):
+    resultDict = {'volumes': []}
+    volumeList = excecNRPECommand(hostip, "discover_volume_list")
+    for volumeName in volumeList.keys():
+        volumeDetail = excecNRPECommand(hostip, "discover_volume_info",
+                                        [volumeName])
+        resultDict['volumes'].append(volumeDetail.get(volumeName))
+    return resultDict
+
+
 def discoverCluster(hostip, cluster):
     """
     This method helps to discover the nodes, volumes and bricks in the given
@@ -72,7 +86,7 @@ def discoverCluster(hostip, cluster):
 
     Returns
     ---------
-     Returns cluster details in the following dictinary format
+     Returns cluster details in the following dictionary format
     {
       'name': cluster-name,
      'volumes': [list-volumes],
@@ -83,7 +97,7 @@ def discoverCluster(hostip, cluster):
 
     clusterdata = {}
     #Discover the logical components
-    componentlist = excecNRPECommand(hostip, "discoverlogicalcomponents")
+    componentlist = discoverVolumes(hostip)
     #Discover the peers
     hostlist = excecNRPECommand(hostip, "discoverpeers")
     #Add the ip address of the root node given by the user to the peer list

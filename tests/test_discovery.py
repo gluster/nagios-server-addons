@@ -21,9 +21,12 @@ from testrunner import PluginsTestCase as TestCaseBase
 
 
 class TestDiscovery(TestCaseBase):
-    def _mockExcecNRPECommand(self, host, command):
-        if command == "discoverlogicalcomponents":
-            return self._getLogicalComponents()
+    def _mockExcecNRPECommand(self, host, command, arguments=None,
+                              jsonOutput=True):
+        if command == "discover_volume_list":
+            return self._getVolumeNames()
+        elif command == "discover_volume_info":
+            return self._getVolumeInfo(arguments[0])
         elif command == "discoverpeers":
             return self._getPeers()
         elif command == "discoverhostparams":
@@ -32,14 +35,30 @@ class TestDiscovery(TestCaseBase):
     def _getLogicalComponents(self):
         result = {}
         result['volumes'] = []
-        result['volumes'].append({"bricks": [{"brickpath": "/bricks/v1-1",
-                                              "hostUuid": "0000-1111",
-                                              "hostip": "172.16.53.1"}],
-                                  "type": "DISTRIBUTE", "name": "V1"})
-        result['volumes'].append({"bricks": [{"brickpath": "/bricks/v2-1",
-                                              "hostUuid": "0000-1112",
-                                              "hostip": "172.16.53.2"}],
-                                  "type": "DISTRIBUTE", "name": "V2"})
+        result['volumes'].append(self._getVolumeInfo("V1")['V1'])
+        result['volumes'].append(self._getVolumeInfo("V2")['V2'])
+        return result
+
+    def _getVolumeInfo(self, volumeName):
+        result = {}
+        if volumeName == "V1":
+            volume = {"bricks": [{"brickpath": "/bricks/v1-1",
+                                  "hostUuid": "0000-1111",
+                                  "hostip": "172.16.53.1"}],
+                      "type": "DISTRIBUTE", "name": "V1"}
+
+        elif volumeName == "V2":
+            volume = {"bricks": [{"brickpath": "/bricks/v2-1",
+                                  "hostUuid": "0000-1112",
+                                  "hostip": "172.16.53.2"}],
+                      "type": "DISTRIBUTE", "name": "V2"}
+        result[volume['name']] = volume
+        return result
+
+    def _getVolumeNames(self):
+        result = {}
+        result['V1'] = {"type": "DISTRIBUTE", "name": "V1"}
+        result['V2'] = {"type": "DISTRIBUTE", "name": "V2"}
         return result
 
     def _getPeers(self):
