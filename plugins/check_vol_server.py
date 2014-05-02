@@ -35,15 +35,15 @@ def _getVolUtilizationNRPECommand(args):
 
 
 def _getVolStatusNRPECommand(args):
-    return ("check_vol_status -a " + args.volume)
+    return ("check_vol_status -a %s %s" % (args.volume, 'info'))
 
 
 def _getVolQuotaStatusNRPECommand(args):
-    return ("check_vol_quota_status -a " + args.volume)
+    return ("check_vol_status -a %s %s" % (args.volume, 'quota'))
 
 
 def _getVolSelfHealStatusNRPECommand(args):
-    return ("check_vol_heal_status -a " + args.volume)
+    return ("check_vol_status -a %s %s" % (args.volume, 'self-heal'))
 
 
 def _getNRPEBaseCmd(host):
