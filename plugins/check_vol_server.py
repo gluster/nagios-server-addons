@@ -69,7 +69,7 @@ def _getVolumeStatusOutput(args):
             "GET services\n"
             "Filter: host_groups >= %s\n"
             "Filter: custom_variable_values >= %s\n"
-            "Filter: description ~ Brick Status - \n"
+            "Filter: description ~ Brick - \n"
             "Stats: state = 0\n"
             "Stats: state = 2\n"
             % (args.hostgroup, args.volume))

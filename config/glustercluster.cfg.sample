@@ -66,14 +66,14 @@ define service {
 # This defines a Brick Status service
 # Edit this sample
 #    host_name = host the brick is on
-#    service_description = Brick Status - <brickdir>
+#    service_description = Brick - <brickdir>
 #    _BRICK_DIR = Path to brick on server
 #    _VOL_NAME  = Volume name the brick is part of
 ################################################################################
 define service {
   use                   brick-passive-service
   host_name             host.ipaddress1
-  service_description   Brick Status - /bricks/b1
+  service_description   Brick - /bricks/b1
   _BRICK_DIR            /bricks/b1 ; MUST DECLARE the custom var _BRICK_DIR
   _VOL_NAME             Vol-1
 }

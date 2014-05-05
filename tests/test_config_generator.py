@@ -45,7 +45,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
 
     def _verifyHostServices(self, hostConfig, hostData):
         for brick in hostData['bricks']:
-            serviceDesc = "Brick Status - %s" % brick['brickpath']
+            serviceDesc = "Brick - %s" % brick['brickpath']
             service = self._findServiceInList(hostConfig['host_services'],
                                               serviceDesc)
             self.assertNotEqual(service, None,
