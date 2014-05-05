@@ -44,10 +44,11 @@ def update_host_state(hostAddr, srvcName, statusCode):
         cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;" \
                  "Host Status WARNING - " \
                  "Service(s) ['%s'] in CRITICAL state\n" \
-                 % (now, hostAddr, statusCode, srvcName)
+                 % (now, hostAddr, utils.PluginStatusCode.OK, srvcName)
     else:
         cmdStr = "[%s] PROCESS_HOST_CHECK_RESULT;%s;%s;Host Status OK - " \
-                 "Services in good health\n" % (now, hostAddr, statusCode)
+                 "Services in good health\n" \
+                 % (now, hostAddr, utils.PluginStatusCode.OK)
 
     _writeNagiosCommand(cmdStr)
 
