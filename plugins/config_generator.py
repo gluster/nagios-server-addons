@@ -87,7 +87,7 @@ class GlusterNagiosConfManager:
         volumeService = {}
         volumeService['host_name'] = clusterName
         volumeService['use'] = 'gluster-service-without-graph'
-        serviceDesc = 'Volume Status Quota - %s' % (volume['name'])
+        serviceDesc = 'Volume Quota - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
         volumeService['_VOL_NAME'] = volume['name']
         checkCommand = 'check_vol_quota_status!%s!%s' % \
@@ -126,6 +126,13 @@ class GlusterNagiosConfManager:
         service['use'] = 'gluster-service-with-graph'
         service['service_description'] = 'Cluster Utilization'
         service['check_command'] = 'check_cluster_vol_usage!80!90'
+        return service
+
+    def createClusterQuorumService(self, clusterName):
+        service = {}
+        service['host_name'] = clusterName
+        service['use'] = 'gluster-passive-service'
+        service['service_description'] = 'Cluster - Quorum'
         return service
 
     def createClusterAutoConfigService(self, clusterName, hostIp):
@@ -215,6 +222,8 @@ class GlusterNagiosConfManager:
         # If there are volumes, then create a cluster utilization service
         if cluster.get('volumes'):
             clusterServices.append(self.createClusterUtilizationService(
+                cluster['name']))
+            clusterServices.append(self.createClusterQuorumService(
                 cluster['name']))
         clusterServices.append(self.createClusterAutoConfigService(
             cluster['name'], cluster['hosts'][0]['hostip']))

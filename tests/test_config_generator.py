@@ -65,7 +65,12 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self._verifyClusterServices(config, clusterData)
 
     def _verifyClusterServices(self, clusterConfig, clusterData):
-        self.assertEqual(len(clusterConfig['host_services']), 7)
+        self.assertEqual(len(clusterConfig['host_services']), 8)
+        serviceDesc = 'Cluster - Quorum'
+        service = self._findServiceInList(clusterConfig['host_services'],
+                                          serviceDesc)
+        self.assertNotEqual(service, None,
+                            "Cluster Quorum service is not created")
         for volume in clusterData['volumes']:
             self._verifyVolumeServices(clusterConfig['host_services'], volume)
 
@@ -78,7 +83,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         service = self._findServiceInList(serviceList, serviceDesc)
         self.assertNotEqual(service, None,
                             "Volume Status service is not created")
-        serviceDesc = 'Volume Status Quota - %s' % (volume['name'])
+        serviceDesc = 'Volume Quota - %s' % (volume['name'])
         service = self._findServiceInList(serviceList, serviceDesc)
         self.assertNotEqual(service, None,
                             "Volume Status Quota service is not created")
