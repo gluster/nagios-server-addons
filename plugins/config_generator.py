@@ -21,6 +21,7 @@
 from pynag import Model
 
 import server_utils
+from glusternagios.glustercli import HostStatus
 
 """
 Change mode helps to identify the change in the defintion.
@@ -41,7 +42,7 @@ class GlusterNagiosConfManager:
 
     #Create nagios host configuration with the given attributes
     def createHost(self, hostName, alias, template,
-                   address, hostGroups, checkCommand, services):
+                   address, hostGroups, checkCommand, services, uuid):
         host = {}
         host['host_name'] = hostName
         host['alias'] = alias
@@ -55,6 +56,8 @@ class GlusterNagiosConfManager:
         #aggregate all the host services under the host
         if services:
             host['host_services'] = services
+        if uuid:
+            host['_HOST_UUID'] = uuid
         return host
 
     def __createVolumeUtilizationService(self, volume, clusterName):
@@ -230,18 +233,19 @@ class GlusterNagiosConfManager:
         #Create host config for Gluster cluster with volume related services
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
-            cluster['name'], None, None, clusterServices)
+            cluster['name'], None, None, clusterServices, None)
         hostsConfigs.append(clusterHostConfig)
         #Create host config for all hosts in the cluster with brick related
         #services
         for host in cluster['hosts']:
-            brickServices = self.createBrickServices(host)
-            hostGroups = "gluster_hosts,%s" % (cluster['name'])
-            hostConfig = self.createHost(
-                host['hostname'], host['hostname'], "gluster-host",
-                host['hostip'], hostGroups, None, brickServices)
-            hostsConfigs.append(hostConfig)
-
+            if host['status'] == HostStatus.CONNECTED:
+                brickServices = self.createBrickServices(host)
+                hostGroups = "gluster_hosts,%s" % (cluster['name'])
+                hostConfig = self.createHost(
+                    host['hostname'], host['hostname'], "gluster-host",
+                    host['hostip'], hostGroups, None, brickServices,
+                    host.get('uuid'))
+                hostsConfigs.append(hostConfig)
         hostGroup["_hosts"] = hostsConfigs
         return hostGroup
 

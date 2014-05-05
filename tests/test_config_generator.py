@@ -17,6 +17,7 @@
 #
 
 from plugins import config_generator
+from glusternagios.glustercli import HostStatus
 from testrunner import PluginsTestCase as TestCaseBase
 
 
@@ -116,10 +117,14 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         cluster = {'name': 'Test-Cluster', 'hosts': [], 'volumes': []}
         cluster['hosts'].append({'hostip': '10.70.43.1',
                                  'hostname': 'host-1',
+                                 'uuid': '0000-1111',
+                                 'status': HostStatus.CONNECTED,
                                  'bricks': self.createBricks(1, "Volume1",
                                                              '10.70.43.1')})
         cluster['hosts'].append({'hostip': '10.70.43.2',
                                  'hostname': 'host-2',
+                                 'status': HostStatus.CONNECTED,
+                                 'uuid': '0000-1112',
                                  'bricks': self.createBricks(2, "Volume1",
                                                              '10.70.43.2')})
         cluster['volumes'].append({'name': 'Volume1', "type": "Replicate"})

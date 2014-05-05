@@ -17,6 +17,7 @@
 #
 
 from plugins import discovery
+from glusternagios.glustercli import HostStatus
 from testrunner import PluginsTestCase as TestCaseBase
 
 
@@ -63,8 +64,10 @@ class TestDiscovery(TestCaseBase):
 
     def _getPeers(self):
         result = []
-        result.append({"hostip": "lo", "uuid": "0000-1111"})
-        result.append({"hostip": "172.16.53.2", "uuid": "0000-1112"})
+        result.append({"hostip": "lo", "uuid": "0000-1111",
+                       'status': HostStatus.CONNECTED})
+        result.append({"hostip": "172.16.53.2", "uuid": "0000-1112",
+                       'status': HostStatus.CONNECTED})
         return result
 
     def _getHostParams(self, hostip):

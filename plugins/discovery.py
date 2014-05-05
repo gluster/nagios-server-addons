@@ -24,6 +24,7 @@ import shutil
 import sys
 
 from glusternagios import utils
+from glusternagios.glustercli import HostStatus
 from config_generator import GlusterNagiosConfManager
 import server_utils
 import submit_external_command
@@ -111,16 +112,17 @@ def discoverCluster(hostip, cluster):
     #Add the ip address of the root node given by the user to the peer list
     hostlist[0]['hostip'] = hostip
     for host in hostlist:
-        #Get host names
-        hostDetails = execNRPECommand(host['hostip'], "discoverhostparams")
-        host.update(hostDetails)
-        #Get the list of bricks for this host and add to dictionary
-        host['bricks'] = []
-        for volume in componentlist['volumes']:
-            for brick in volume['bricks']:
-                if brick['hostUuid'] == host['uuid']:
-                    brick['volumeName'] = volume['name']
-                    host['bricks'].append(brick)
+        #Get host names for all the connected hosts
+        if host['status'] == HostStatus.CONNECTED:
+            hostDetails = execNRPECommand(host['hostip'], "discoverhostparams")
+            host.update(hostDetails)
+            #Get the list of bricks for this host and add to dictionary
+            host['bricks'] = []
+            for volume in componentlist['volumes']:
+                for brick in volume['bricks']:
+                    if brick['hostUuid'] == host['uuid']:
+                        brick['volumeName'] = volume['name']
+                        host['bricks'].append(brick)
     clusterdata['hosts'] = hostlist
     clusterdata['volumes'] = componentlist['volumes']
     clusterdata['name'] = cluster
@@ -143,10 +145,11 @@ def setHostNameWithIP(clusterdata):
 def isHostsNamesUnique(clusterdata):
     hostnames = {}
     for host in clusterdata['hosts']:
-        if hostnames.get(host['hostname']) is None:
-            hostnames[host['hostname']] = host['hostip']
-        else:
-            return False
+        if host.get('status') == HostStatus.CONNECTED:
+            if hostnames.get(host.get('hostname')) is None:
+                hostnames[host.get('hostname')] = host['hostip']
+            else:
+                return False
     return True
 
 
@@ -244,29 +247,30 @@ def findAddUpdateHosts(hosts):
 
 
 #Find deleted hosts in the given cluster.
-def findDeletedHosts(hostgroup, hosts):
+def findDeletedHosts(hostgroup, hosts, ignoredHosts):
     deletedHosts = []
     hostConfigs = server_utils.getHostConfigsForCluster(hostgroup)
     for hostConfig in hostConfigs:
-        host = findHostInList(hosts, hostConfig['host_name'])
-        if host is None:
-            deletedHosts.append({'host_name': hostConfig['host_name'],
-                                 'changeMode': CHANGE_MODE_REMOVE})
+        if hostConfig.get('_HOST_UUID') not in ignoredHosts:
+            host = findHostInList(hosts, hostConfig['host_name'])
+            if host is None:
+                deletedHosts.append({'host_name': hostConfig['host_name'],
+                                     'changeMode': CHANGE_MODE_REMOVE})
     return deletedHosts
 
 
 #Find Added/Deleted/Updated hosts in cluster
-def findHostDelta(clusterConfig):
+def findHostDelta(clusterConfig, ignoredHosts):
     hostDelta = []
     updated = findAddUpdateHosts(clusterConfig['_hosts'])
     hostDelta.extend(updated)
     hostDelta.extend(findDeletedHosts(clusterConfig['hostgroup_name'],
-                                      clusterConfig['_hosts']))
+                                      clusterConfig['_hosts'], ignoredHosts))
     return hostDelta
 
 
 #Find changes to the cluster
-def findDelta(clusterConfig):
+def findDelta(clusterConfig, ignoredHosts):
     delta = {}
     delta['hostgroup_name'] = clusterConfig['hostgroup_name']
     delta['alias'] = clusterConfig['alias']
@@ -277,7 +281,7 @@ def findDelta(clusterConfig):
         delta['_hosts'] = clusterConfig['_hosts']
         return delta
 
-    hostDelta = findHostDelta(clusterConfig)
+    hostDelta = findHostDelta(clusterConfig, ignoredHosts)
     delta['_hosts'] = hostDelta
     if hostDelta:
         delta['changeMode'] = CHANGE_MODE_UPDATE
@@ -449,6 +453,14 @@ def sendCustomNotification(cluster, summary):
     submit_external_command.submitExternalCommand(cmdStr)
 
 
+def getAllNonConnectedHosts(hostList):
+    nonConnectedHosts = []
+    for host in hostList:
+        if host.get('status') != HostStatus.CONNECTED:
+            nonConnectedHosts.append(host.get('uuid'))
+    return nonConnectedHosts
+
+
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster)
@@ -457,7 +469,8 @@ if __name__ == '__main__':
     if args.force:
         clusterDelta['changeMode'] = CHANGE_MODE_ADD
     else:
-        clusterDelta = findDelta(clusterDelta)
+        nonConnectedHosts = getAllNonConnectedHosts(clusterdata['hosts'])
+        clusterDelta = findDelta(clusterDelta, nonConnectedHosts)
 
     if clusterDelta.get('changeMode') is None:
         print "Cluster configurations are in sync"
