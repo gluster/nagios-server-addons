@@ -90,7 +90,7 @@ def _getVolumeQuotaStatusOutput(args):
     table = livestatus.readLiveStatus("GET services\n"
                                       "Columns: state long_plugin_output\n"
                                       "Filter: description = "
-                                      "Volume Status Quota - %s" % args.volume)
+                                      "Volume Quota - %s" % args.volume)
     servicestatus = utils.PluginStatusCode.UNKNOWN
     statusoutput = ''
     if len(table) > 0:
