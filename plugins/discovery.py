@@ -39,22 +39,29 @@ from config_generator import CHANGE_MODE_UPDATE
 nrpeCmdPath = utils.CommandPath("nrpe", NRPE_PATH, )
 
 
-def excecNRPECommand(host, command, arguments=None, jsonOutput=True):
+def execNRPECommand(host, command, arguments=None, jsonOutput=True):
     nrpeCmd = [nrpeCmdPath.cmd, "-H", host, "-c", command]
     if arguments:
         nrpeCmd.append('-a')
         nrpeCmd.extend(arguments)
-    (returncode, outputStr, err) = utils.execCmd(nrpeCmd)
-    #convert to dictionary
-    if not jsonOutput:
-        return outputStr[0]
+    (returncode, outputStr, err) = utils.execCmd(nrpeCmd, raw=True)
+    if returncode == 0:
+        if jsonOutput:
+            try:
+                #convert to dictionary
+                resultDict = json.loads(outputStr)
+            except Exception as e:
+                e.args += (outputStr,)
+                raise
+            return resultDict
+        else:
+            return outputStr
     else:
-        try:
-            output = json.loads(outputStr[0])
-        except Exception as e:
-            e.args += (outputStr[0])
-            raise
-        return output
+        print "Failed to execute NRPE command '%s' in host '%s' " \
+              "\nError : %s" \
+              "Make sure NPRE server in host '%s' is configured to accept " \
+              "requests from Nagios server" % (command, host, outputStr, host)
+        sys.exit(utils.PluginStatusCode.CRITICAL)
 
 
 #Discovers volumes info one by one.
@@ -63,10 +70,10 @@ def excecNRPECommand(host, command, arguments=None, jsonOutput=True):
 #in NRPE.
 def discoverVolumes(hostip):
     resultDict = {'volumes': []}
-    volumeList = excecNRPECommand(hostip, "discover_volume_list")
+    volumeList = execNRPECommand(hostip, "discover_volume_list")
     for volumeName in volumeList.keys():
-        volumeDetail = excecNRPECommand(hostip, "discover_volume_info",
-                                        [volumeName])
+        volumeDetail = execNRPECommand(hostip, "discover_volume_info",
+                                       [volumeName])
         resultDict['volumes'].append(volumeDetail.get(volumeName))
     return resultDict
 
@@ -100,12 +107,12 @@ def discoverCluster(hostip, cluster):
     #Discover the logical components
     componentlist = discoverVolumes(hostip)
     #Discover the peers
-    hostlist = excecNRPECommand(hostip, "discoverpeers")
+    hostlist = execNRPECommand(hostip, "discoverpeers")
     #Add the ip address of the root node given by the user to the peer list
     hostlist[0]['hostip'] = hostip
     for host in hostlist:
         #Get host names
-        hostDetails = excecNRPECommand(host['hostip'], "discoverhostparams")
+        hostDetails = execNRPECommand(host['hostip'], "discoverhostparams")
         host.update(hostDetails)
         #Get the list of bricks for this host and add to dictionary
         host['bricks'] = []
@@ -342,7 +349,7 @@ def configureNodes(clusterDelta, nagiosServerAddress, mode):
         #Only when a new node is added or whole cluster is added freshly.
         if (clusterDelta.get('changeMode') == CHANGE_MODE_ADD or
                 host.get('changeMode') == CHANGE_MODE_ADD) \
-                and (host['use'] != 'gluster_cluster'):
+                and (host['use'] == 'gluster-host'):
             if not nagiosServerAddress:
                 #Nagios server address should be specified as arg in auto mode
                 if mode == "manual":
@@ -356,7 +363,7 @@ def configureNodes(clusterDelta, nagiosServerAddress, mode):
             #Configure the nodes. clusterName, Nagios server address and
             #host_name is passed as an argument to nrpe command
             #'configure_gluster_node'
-            excecNRPECommand(
+            execNRPECommand(
                 host['address'], 'configure_gluster_node',
                 [clusterDelta['hostgroup_name'], nagiosServerAddress,
                  host['host_name']], False)

@@ -21,8 +21,8 @@ from testrunner import PluginsTestCase as TestCaseBase
 
 
 class TestDiscovery(TestCaseBase):
-    def _mockExcecNRPECommand(self, host, command, arguments=None,
-                              jsonOutput=True):
+    def _mockExecNRPECommand(self, host, command, arguments=None,
+                             jsonOutput=True):
         if command == "discover_volume_list":
             return self._getVolumeNames()
         elif command == "discover_volume_info":
@@ -93,7 +93,7 @@ class TestDiscovery(TestCaseBase):
 
     # Method to test the discoverCluster() method
     def testDiscoverCluster(self):
-        discovery.excecNRPECommand = self._mockExcecNRPECommand
+        discovery.execNRPECommand = self._mockExecNRPECommand
         clusterName = "test-cluster"
         host = "172.16.53.1"
         clusterdata = discovery.discoverCluster(host, clusterName)
