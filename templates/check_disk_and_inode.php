@@ -29,7 +29,8 @@ foreach ($this->DS as $KEY=>$VAL) {
     $name[$KEY] = "Disk Utilization for mount: " . $VAL['NAME'];
      
     # set graph labels
-    $opt[$KEY]     = "--vertical-label \"% Usage\" --lower-limit 0 --upper-limit 100 --title \"$name[$KEY]\" ";
+    $max_limit = $VAL['MAX'];
+    $opt[$KEY]     = "--vertical-label \"%(Total: $max_limit GB) \"  --lower-limit 0 --upper-limit 100 --title \"$name[$KEY]\" ";
     # Graph Definitions
     $def[$KEY]     = rrd::def( "var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" ); 
 
