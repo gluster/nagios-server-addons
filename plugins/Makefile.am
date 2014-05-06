@@ -14,6 +14,7 @@ dist_glusternagiosplugins_PYTHON = \
 	submit_external_command.py \
 	brick_status_event_handler.py \
 	server_utils.py \
+	network_utils.py \
 	$(NULL)
 
 EXTRA_DIST = \

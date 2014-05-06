@@ -21,11 +21,13 @@ import datetime
 import os
 import shutil
 import sys
+import socket
 
 from glusternagios import utils
 from glusternagios.glustercli import HostStatus
 from config_generator import GlusterNagiosConfManager
 import server_utils
+import network_utils
 import submit_external_command
 from constants import DEFAULT_AUTO_CONFIG_DIR
 from constants import NAGIOS_CONFIG_FILE
@@ -432,23 +434,21 @@ def getNagiosAddress(clusterName):
         nagiosAddress = autoConfigService['check_command'].split("!")[2]
         return nagiosAddress
 
-    (returncode, outputStr, err) = utils.execCmd([utils.hostnameCmdPath.cmd,
-                                                  '--fqdn'])
-    if returncode == 0:
-        default = outputStr[0]
-    else:
-        (returncode, outputStr, err) = utils.execCmd(
-            [utils.hostnameCmdPath.cmd, '-I'])
-        if returncode == 0:
-            default = outputStr[0]
-    if default:
-        msg = "Enter Nagios server address [%s]: " % (default.strip())
-    else:
-        msg = "Enter Nagios server address : "
-    ans = raw_input(msg)
-    if not ans:
-        ans = default
-    return ans
+    return getHostAddress()
+
+
+def getHostAddress():
+    fqdn = socket.getfqdn()
+    while True:
+        msg = 'Enter Nagios server address [%s]: ' % fqdn
+        address = raw_input(msg)
+        if not address:
+            address = fqdn
+        validationMsg = network_utils.validateHostAddress(address)
+        if validationMsg:
+            print 'Host address is not valid: %s' % validationMsg
+        else:
+            return address
 
 
 def getConfirmation(message, default):

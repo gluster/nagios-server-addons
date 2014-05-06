@@ -23,6 +23,7 @@ test_modules = \
 	test_notify_ovirt_engine_handler.py \
 	test_config_generator.py \
 	test_discovery.py \
+	test_network_utils.py
 	$(NULL)
 
 dist_nagiosserveraddonstests_DATA = \
