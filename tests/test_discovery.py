@@ -16,14 +16,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
-from plugins import discovery
+from plugins import discovery, server_utils
 from glusternagios.glustercli import HostStatus
 from testrunner import PluginsTestCase as TestCaseBase
 
 
 class TestDiscovery(TestCaseBase):
     def _mockExecNRPECommand(self, host, command, arguments=None,
-                             jsonOutput=True):
+                             timeout=None):
         if command == "discover_volume_list":
             return self._getVolumeNames()
         elif command == "discover_volume_info":
@@ -96,8 +96,10 @@ class TestDiscovery(TestCaseBase):
 
     # Method to test the discoverCluster() method
     def testDiscoverCluster(self):
-        discovery.execNRPECommand = self._mockExecNRPECommand
+        server_utils.execNRPECommand = self._mockExecNRPECommand
         clusterName = "test-cluster"
         host = "172.16.53.1"
-        clusterdata = discovery.discoverCluster(host, clusterName)
+        clusterdata = discovery.discoverCluster(host,
+                                                clusterName,
+                                                timeout=None)
         self._verifyClusterData(clusterdata, clusterName, host)

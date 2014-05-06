@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# discovery.py Nagios plugin to discover Gluster entities using NRPE
+# server_utils.py Utility methods used by nagios-server-addons module
 # Copyright (C) 2014 Red Hat Inc
 #
 # This program is free software; you can redistribute it and/or
@@ -16,14 +16,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
+import sys
+import json
 import datetime
 from pynag import Model
 
 from glusternagios import utils
 import submit_external_command
+from constants import NRPE_PATH
 
 
 serviceCmdPath = utils.CommandPath("service", "/sbin/service", )
+nrpeCmdPath = utils.CommandPath("check_nrpe", NRPE_PATH, )
 
 
 def restartNagios():
@@ -76,3 +80,40 @@ def getHostGroup(name):
         return hostgroup[0]
     else:
         return None
+
+
+def getNRPEBaseCommand(host, timeout=None):
+    command = NRPE_PATH + " -H " + host
+    if timeout is not None:
+        command += " -t %s" % timeout
+    command += " -c "
+    return command
+
+
+def execNRPECommand(host,
+                    command,
+                    arguments=None,
+                    timeout=None,
+                    json_output=True):
+    nrpeCmd = getNRPEBaseCommand(host, timeout).split()
+    nrpeCmd.append(command)
+    if arguments:
+        nrpeCmd.append('-a')
+        nrpeCmd.extend(arguments)
+    (returncode, outputStr, err) = utils.execCmd(nrpeCmd, raw=True)
+    if returncode == 0:
+        if json_output:
+            try:
+                resultDict = json.loads(outputStr)
+            except Exception as e:
+                e.args += (outputStr,)
+                raise
+            return resultDict
+        else:
+            return outputStr
+    else:
+        print "Failed to execute NRPE command '%s' in host '%s' " \
+              "\nError : %s" \
+              "Make sure NPRE server in host '%s' is configured to accept " \
+              "requests from Nagios server" % (command, host, outputStr, host)
+        sys.exit(utils.PluginStatusCode.CRITICAL)

@@ -17,7 +17,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 import argparse
-import json
 import datetime
 import os
 import shutil
@@ -29,7 +28,6 @@ from config_generator import GlusterNagiosConfManager
 import server_utils
 import submit_external_command
 from constants import DEFAULT_AUTO_CONFIG_DIR
-from constants import NRPE_PATH
 
 
 from config_generator import CHANGE_MODE_ADD
@@ -37,49 +35,25 @@ from config_generator import CHANGE_MODE_REMOVE
 from config_generator import CHANGE_MODE_UPDATE
 
 
-nrpeCmdPath = utils.CommandPath("nrpe", NRPE_PATH, )
-
-
-def execNRPECommand(host, command, arguments=None, jsonOutput=True):
-    nrpeCmd = [nrpeCmdPath.cmd, "-H", host, "-c", command]
-    if arguments:
-        nrpeCmd.append('-a')
-        nrpeCmd.extend(arguments)
-    (returncode, outputStr, err) = utils.execCmd(nrpeCmd, raw=True)
-    if returncode == 0:
-        if jsonOutput:
-            try:
-                #convert to dictionary
-                resultDict = json.loads(outputStr)
-            except Exception as e:
-                e.args += (outputStr,)
-                raise
-            return resultDict
-        else:
-            return outputStr
-    else:
-        print "Failed to execute NRPE command '%s' in host '%s' " \
-              "\nError : %s" \
-              "Make sure NPRE server in host '%s' is configured to accept " \
-              "requests from Nagios server" % (command, host, outputStr, host)
-        sys.exit(utils.PluginStatusCode.CRITICAL)
-
-
 #Discovers volumes info one by one.
 #First it fetches the volumes list and then it fetches the bricks
 #details of volume one by one. Its an work around for size limitation issue
 #in NRPE.
-def discoverVolumes(hostip):
+def discoverVolumes(hostip, timeout):
     resultDict = {'volumes': []}
-    volumeList = execNRPECommand(hostip, "discover_volume_list")
+    volumeList = server_utils.execNRPECommand(hostip,
+                                              "discover_volume_list",
+                                              timeout=timeout)
     for volumeName in volumeList.keys():
-        volumeDetail = execNRPECommand(hostip, "discover_volume_info",
-                                       [volumeName])
+        volumeDetail = server_utils.execNRPECommand(hostip,
+                                                    "discover_volume_info",
+                                                    arguments=[volumeName],
+                                                    timeout=timeout)
         resultDict['volumes'].append(volumeDetail.get(volumeName))
     return resultDict
 
 
-def discoverCluster(hostip, cluster):
+def discoverCluster(hostip, cluster, timeout):
     """
     This method helps to discover the nodes, volumes and bricks in the given
     gluster. It uses NRPE commands to contact the gluster nodes.
@@ -106,15 +80,20 @@ def discoverCluster(hostip, cluster):
 
     clusterdata = {}
     #Discover the logical components
-    componentlist = discoverVolumes(hostip)
+    componentlist = discoverVolumes(hostip, timeout)
     #Discover the peers
-    hostlist = execNRPECommand(hostip, "discoverpeers")
+    hostlist = server_utils.execNRPECommand(hostip,
+                                            "discoverpeers",
+                                            timeout=timeout)
     #Add the ip address of the root node given by the user to the peer list
     hostlist[0]['hostip'] = hostip
     for host in hostlist:
         #Get host names for all the connected hosts
         if host['status'] == HostStatus.CONNECTED:
-            hostDetails = execNRPECommand(host['hostip'], "discoverhostparams")
+            hostDetails = server_utils.execNRPECommand(
+                host['hostip'],
+                "discoverhostparams",
+                timeout=timeout)
             host.update(hostDetails)
             #Get the list of bricks for this host and add to dictionary
             host['bricks'] = []
@@ -307,6 +286,9 @@ def parse_input():
                              ' output files will be written')
     parser.add_argument('-f', '--force', action='store_true', dest='force',
                         help="Force sync the Cluster configuration")
+    parser.add_argument('-t', '--timeout', action='store', dest='timeout',
+                        type=str,
+                        help="No of secs NRPE should timeout getting details")
     args = parser.parse_args()
     return args
 
@@ -348,7 +330,7 @@ def formatTextForMail(text):
 
 
 #Configure the gluster node to send passive check results through NSCA
-def configureNodes(clusterDelta, nagiosServerAddress, mode):
+def configureNodes(clusterDelta, nagiosServerAddress, mode, timeout):
     for host in clusterDelta['_hosts']:
         #Only when a new node is added or whole cluster is added freshly.
         if (clusterDelta.get('changeMode') == CHANGE_MODE_ADD or
@@ -367,10 +349,13 @@ def configureNodes(clusterDelta, nagiosServerAddress, mode):
             #Configure the nodes. clusterName, Nagios server address and
             #host_name is passed as an argument to nrpe command
             #'configure_gluster_node'
-            execNRPECommand(
+            server_utils.execNRPECommand(
                 host['address'], 'configure_gluster_node',
-                [clusterDelta['hostgroup_name'], nagiosServerAddress,
-                 host['host_name']], False)
+                arguments=[clusterDelta['hostgroup_name'],
+                           nagiosServerAddress,
+                           host['host_name']],
+                timeout=timeout,
+                json_output=False)
     return nagiosServerAddress
 
 
@@ -390,9 +375,16 @@ def updateNagiosAddressInAutoConfig(clusterHostConfig, nagiosServerAddress):
 
 #Write the cluster configurations. If force mode is used then it will clean
 #the config directory before writing the changes.
-def writeDelta(clusterDelta, configManager, force, nagiosServerAddress, mode):
-    nagiosServerAddress = configureNodes(clusterDelta, nagiosServerAddress,
-                                         mode)
+def writeDelta(clusterDelta,
+               configManager,
+               force,
+               nagiosServerAddress,
+               mode,
+               timeout):
+    nagiosServerAddress = configureNodes(clusterDelta,
+                                         nagiosServerAddress,
+                                         mode,
+                                         timeout)
     #Find the cluster host using host group name
     clusterHostConfig = findHostInList(clusterDelta['_hosts'],
                                        clusterDelta['hostgroup_name'])
@@ -463,7 +455,7 @@ def getAllNonConnectedHosts(hostList):
 
 if __name__ == '__main__':
     args = parse_input()
-    clusterdata = discoverCluster(args.hostip, args.cluster)
+    clusterdata = discoverCluster(args.hostip, args.cluster, args.timeout)
     configManager = getConfigManager(args)
     clusterDelta = configManager.generateNagiosConfig(clusterdata)
     if args.force:
@@ -484,7 +476,7 @@ if __name__ == '__main__':
             "Are you sure, you want to commit the changes?", "Yes")
         if confirmation:
             writeDelta(clusterDelta, configManager, args.force,
-                       args.nagiosServerIP, args.mode)
+                       args.nagiosServerIP, args.mode, args.timeout)
             print "Cluster configurations synced successfully from host %s" % \
                   (args.hostip)
             #If Nagios is running then try to restart. Otherwise don't do

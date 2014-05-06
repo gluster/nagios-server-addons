@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import sys
-import commands
 import json
 import random
 import argparse
@@ -8,7 +7,7 @@ import livestatus
 import os
 
 from glusternagios import utils
-from constants import NRPE_PATH
+import server_utils
 
 
 def _getListHosts(args):
@@ -50,17 +49,8 @@ def _getVolGeoRepStatusNRPECommand(args):
     return ("check_vol_status -a %s %s" % (args.volume, 'geo-rep'))
 
 
-def _getNRPEBaseCmd(host):
-    return NRPE_PATH + " -H " + host + " -c "
-
-
-def execNRPECommand(command):
-    status, output = commands.getstatusoutput(command)
-    return os.WEXITSTATUS(status), output
-
-
 def _getVolumeStatusOutput(args):
-    status, output = _executeRandomHost(_getVolStatusNRPECommand(args))
+    status, output = _executeRandomHost(_getVolStatusNRPECommand(args), args)
 
     if status == utils.PluginStatusCode.OK:
         #Following query will return the output in format [[2,0]]
@@ -101,16 +91,23 @@ def _getVolumeQuotaStatusOutput(args):
             statusoutput.find("QUOTA: OK") > -1):
         # if ok, don't poll
         return servicestatus, statusoutput
-    return _executeRandomHost(_getVolQuotaStatusNRPECommand(args))
+    return _executeRandomHost(_getVolQuotaStatusNRPECommand(args), args)
 
 
-def _executeRandomHost(command):
+def execNRPECommand(command):
+    status, output, err = utils.execCmd(command.split(), raw=True)
+    return os.WEXITSTATUS(status), output
+
+
+def _executeRandomHost(command, args):
     list_hosts = _getListHosts(args)
     host = random.choice(list_hosts)
     #Get the address of the host
     host_address = _getHostAddress(host)
 
-    status, output = execNRPECommand(_getNRPEBaseCmd(host_address) + command)
+    status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
+                                     host_address,
+                                     timeout=args.timeout) + command)
 
     if status != utils.PluginStatusCode.UNKNOWN:
         return status, output
@@ -119,8 +116,9 @@ def _executeRandomHost(command):
     #in the host group and send the command until
     #the command is successful
     for host in list_hosts:
-        status, output = execNRPECommand(_getNRPEBaseCmd(_getHostAddress(host))
-                                         + command)
+        status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
+                                         host,
+                                         timeout=args.timeout) + command)
         if status != utils.PluginStatusCode.UNKNOWN:
             return status, output
     return status, output
@@ -139,7 +137,7 @@ def showVolumeOutput(args):
     elif args.option == 'geo-rep':
         command = _getVolGeoRepStatusNRPECommand(args)
 
-    return _executeRandomHost(command)
+    return _executeRandomHost(command, args)
 
 
 def parse_input():
@@ -174,6 +172,9 @@ def parse_input():
                                  'quota',
                                  'self-heal',
                                  'geo-rep'])
+    parser.add_argument('-t', '--timeout',
+                        action='store',
+                        help='NRPE timeout')
     args = parser.parse_args()
     if args.critical <= args.warning:
         print "UNKNOWN:Critical must be greater than Warning."
