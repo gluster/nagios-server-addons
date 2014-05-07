@@ -181,7 +181,7 @@ class GlusterNagiosConfManager:
 
     def __createBrickStatusService(self, brick, hostName):
         brickService = {}
-        brickService['use'] = 'gluster-brick-passive-service'
+        brickService['use'] = 'gluster-brick-status-service'
         brickService['host_name'] = hostName
         serviceDesc = "Brick - %s" % brick['brickpath']
         brickService['service_description'] = serviceDesc
