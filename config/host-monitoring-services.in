@@ -1,1 +1,1 @@
-{"serviceList":["Cpu Utilization", "Disk Utilization", "Memory Utilization", "Network Utilization", "Swap Utilization", "Gluster Management Daemon", "Gluster Quota Daemon", "Glusterfs NFS Daemon", "Glusterfs Self-Heal Daemon", "CIFS", "CTDB"]}
+{"serviceList":["Cpu Utilization", "Disk Utilization", "Memory Utilization", "Network Utilization", "Swap Utilization", "Gluster Management", "Quota", "NFS", "Self-Heal", "SMB", "CTDB"]}
