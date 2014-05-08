@@ -154,7 +154,7 @@ class GlusterNagiosConfManager:
             volumeService = self.__createVolumeQuotaStatusService(volume,
                                                                   clusterName)
             volumeServices.append(volumeService)
-            if 'Replicate' in volume['type']:
+            if 'REPLICATE' in volume['type'].upper():
                 volumeService = (self.
                                  __createVolumeHealStatusService(volume,
                                                                  clusterName))
