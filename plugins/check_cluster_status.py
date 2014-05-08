@@ -34,27 +34,24 @@ def findClusterStatus(clusterName):
     # Write command to socket
     cmd = "GET services\nColumns: state\n" \
           "Filter: description ~~ %s\n" \
-          "Filter: host_name = %s" % ('Volume Status', clusterName)
+          "Filter: host_name = %s" % ('Volume Status -', clusterName)
     table = livestatus.readLiveStatus(cmd)
     noOfVolumesInCriticalState = 0
     noOfVolumes = len(table)
+    if noOfVolumes == 0:
+        print "OK : No Volumes present in the cluster"
+        return exitStatus
     for row in table:
         if len(row) > 0 and row[0] == '2':
             noOfVolumesInCriticalState += 1
     if noOfVolumesInCriticalState == noOfVolumes:
-        print "Cluster Status CRITICAL: All Volumes are in Critical State " \
-              "| noOfVolumes=%s noOfVolumesInCriticalState=%s" \
-              % (noOfVolumes, noOfVolumesInCriticalState)
+        print "CRITICAL: All Volumes in the cluster are in Critical State"
         exitStatus = utils.PluginStatusCode.CRITICAL
     elif noOfVolumesInCriticalState > 0:
-        print "Cluster Status WARNING : Some Volumes are in Critical State " \
-              "| noOfVolumes=%s noOfVolumesInCriticalState=%s" \
-              % (noOfVolumes, noOfVolumesInCriticalState)
+        print "WARNING : Some Volumes in the cluster are in Critical State"
         exitStatus = utils.PluginStatusCode.WARNING
     else:
-        print "Cluster Status OK : None of the Volumes are in Critical " \
-              "State | noOfVolumes=%s noOfVolumesInCriticalState=%s" \
-              % (noOfVolumes, noOfVolumesInCriticalState)
+        print "OK : None of the Volumes in the cluster are in Critical State"
     return exitStatus
 
 
