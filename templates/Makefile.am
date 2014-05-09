@@ -5,6 +5,7 @@ pnp4nagiostemplate_DATA = \
 	check_interfaces.php \
 	check_memory.php \
 	check_swap_usage.php \
+	check_vol_utilization.php \
         $(NULL)
 
 EXTRA_DIST = \
