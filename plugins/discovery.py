@@ -453,9 +453,29 @@ def getAllNonConnectedHosts(hostList):
     return nonConnectedHosts
 
 
+def _getHostGroupNames(hostConfig):
+    hostgroups = []
+    for hostgroup in hostConfig.get_effective_hostgroups():
+        hostgroups.append(hostgroup.get('hostgroup_name'))
+    return hostgroups
+
+
+def _findDuplicateHost(hosts, clusterName):
+    for host in hosts:
+        hostConfig = server_utils.getHostConfigByName(host.get('hostname'))
+        if hostConfig:
+            if clusterName not in _getHostGroupNames(hostConfig):
+                return host.get('hostname')
+
+
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster, args.timeout)
+    duplicateHost = _findDuplicateHost(clusterdata.get('hosts'), args.cluster)
+    if duplicateHost:
+        print "ERROR: Host '%s' is already being monitored" % duplicateHost
+        sys.exit(utils.PluginStatusCode.CRITICAL)
+
     configManager = getConfigManager(args)
     clusterDelta = configManager.generateNagiosConfig(clusterdata)
     if args.force:
