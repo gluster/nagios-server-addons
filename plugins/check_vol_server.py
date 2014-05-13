@@ -10,10 +10,10 @@ from glusternagios import utils
 import server_utils
 
 
-def _getListHosts(args):
+def _getListHosts(hostgroup):
     table = livestatus.readLiveStatus("GET hostgroups\nColumns: members\n"
                                       "Filter: name = "
-                                      + args.hostgroup + "\n")
+                                      + hostgroup + "\n")
     tab1 = table[0]
     list_hosts = tab1[0].split(",")
     #First take a random host from the group and send the request
@@ -28,30 +28,30 @@ def _getHostAddress(host):
     return host_address.rstrip()
 
 
-def _getVolUtilizationNRPECommand(args):
-    return ("check_vol_utilization -a " + args.volume + " " +
-            str(args.warning) + " " + str(args.critical))
+def _getVolUtilizationNRPECommand(volume, warning, critical):
+    return ("check_vol_utilization -a " + volume + " " +
+            str(warning) + " " + str(critical))
 
 
-def _getVolStatusNRPECommand(args):
-    return ("check_vol_status -a %s %s" % (args.volume, 'info'))
+def _getVolStatusNRPECommand(volume):
+    return ("check_vol_status -a %s %s" % (volume, 'info'))
 
 
-def _getVolQuotaStatusNRPECommand(args):
-    return ("check_vol_status -a %s %s" % (args.volume, 'quota'))
+def _getVolQuotaStatusNRPECommand(volume):
+    return ("check_vol_status -a %s %s" % (volume, 'quota'))
 
 
-def _getVolSelfHealStatusNRPECommand(args):
-    return ("check_vol_status -a %s %s" % (args.volume, 'self-heal'))
+def _getVolSelfHealStatusNRPECommand(volume):
+    return ("check_vol_status -a %s %s" % (volume, 'self-heal'))
 
 
-def _getVolGeoRepStatusNRPECommand(args):
-    return ("check_vol_status -a %s %s" % (args.volume, 'geo-rep'))
+def _getVolGeoRepStatusNRPECommand(volume):
+    return ("check_vol_status -a %s %s" % (volume, 'geo-rep'))
 
 
-def _getVolumeStatusOutput(args):
-    status, output = _executeRandomHost(_getVolStatusNRPECommand(args), args)
-
+def _getVolumeStatusOutput(hostgroup, volume):
+    status, output = _executeRandomHost(hostgroup,
+                                        _getVolStatusNRPECommand(volume))
     if status == utils.PluginStatusCode.OK:
         #Following query will return the output in format [[2,0]]
         #no.of bricks in OK state - 2 , CRITICAL state - 0
@@ -62,7 +62,7 @@ def _getVolumeStatusOutput(args):
             "Filter: description ~ Brick - \n"
             "Stats: state = 0\n"
             "Stats: state = 2\n"
-            % (args.hostgroup, args.volume))
+            % (hostgroup, volume))
         brick_states = json.loads(brick_states_output)
         bricks_ok = brick_states[0][0]
         bricks_critical = brick_states[0][1]
@@ -75,12 +75,12 @@ def _getVolumeStatusOutput(args):
     return status, output
 
 
-def _getVolumeQuotaStatusOutput(args):
+def _getVolumeQuotaStatusOutput(hostgroup, volume):
     # get current volume quota status
     table = livestatus.readLiveStatus("GET services\n"
                                       "Columns: state long_plugin_output\n"
                                       "Filter: description = "
-                                      "Volume Quota - %s" % args.volume)
+                                      "Volume Quota - %s" % volume)
     servicestatus = utils.PluginStatusCode.UNKNOWN
     statusoutput = ''
     if len(table) > 0:
@@ -91,7 +91,7 @@ def _getVolumeQuotaStatusOutput(args):
             statusoutput.find("QUOTA: OK") > -1):
         # if ok, don't poll
         return servicestatus, statusoutput
-    return _executeRandomHost(_getVolQuotaStatusNRPECommand(args), args)
+    return _executeRandomHost(hostgroup, _getVolQuotaStatusNRPECommand(volume))
 
 
 def execNRPECommand(command):
@@ -99,8 +99,8 @@ def execNRPECommand(command):
     return os.WEXITSTATUS(status), output
 
 
-def _executeRandomHost(command, args):
-    list_hosts = _getListHosts(args)
+def _executeRandomHost(hostgroup, command):
+    list_hosts = _getListHosts(hostgroup)
     host = random.choice(list_hosts)
     #Get the address of the host
     host_address = _getHostAddress(host)
@@ -127,17 +127,18 @@ def _executeRandomHost(command, args):
 def showVolumeOutput(args):
 
     if args.option == 'status':
-        return _getVolumeStatusOutput(args)
+        return _getVolumeStatusOutput(args.hostgroup, args.volume)
     elif args.option == 'utilization':
-        command = _getVolUtilizationNRPECommand(args)
+        command = _getVolUtilizationNRPECommand(
+            args.volume, args.warning, args.critical)
     elif args.option == 'quota':
-        return _getVolumeQuotaStatusOutput(args)
+        return _getVolumeQuotaStatusOutput(args.hostgroup, args.volume)
     elif args.option == 'self-heal':
-        command = _getVolSelfHealStatusNRPECommand(args)
+        command = _getVolSelfHealStatusNRPECommand(args.volume)
     elif args.option == 'geo-rep':
-        command = _getVolGeoRepStatusNRPECommand(args)
+        command = _getVolGeoRepStatusNRPECommand(args.volume)
 
-    return _executeRandomHost(command, args)
+    return _executeRandomHost(args.hostgroup, command)
 
 
 def parse_input():
