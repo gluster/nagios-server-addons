@@ -33,6 +33,7 @@ are added or removed to the entity.
 CHANGE_MODE_ADD = "ADD"
 CHANGE_MODE_REMOVE = "REMOVE"
 CHANGE_MODE_UPDATE = "UPDATE"
+GENERATED_BY_AUTOCONFIG = "__GENERATED_BY_AUTOCONFIG"
 
 
 class GlusterNagiosConfManager:
@@ -287,6 +288,7 @@ class GlusterNagiosConfManager:
             serviceModel = Model.Service()
             serviceModel = self.fillModel(serviceModel, service)
             serviceModel.set_filename(self.getCfgFileName(hostname))
+            serviceModel[GENERATED_BY_AUTOCONFIG] = 1
             serviceModel.save()
         elif service['changeMode'] == CHANGE_MODE_REMOVE:
             serviceModel = Model.Service.objects.filter(
