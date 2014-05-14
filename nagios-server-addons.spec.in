@@ -182,8 +182,10 @@ fi
 %if ( 0%{?_with_firewalld:1} )
 /bin/firewall-cmd --permanent --add-port=80/tcp
 /bin/firewall-cmd --add-port=80/tcp
+/bin/firewall-cmd --add-port=5667/tcp
 %else
 /sbin/iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+/sbin/iptables -I INPUT 1 -p tcp --dport 5667 -j ACCEPT
 /sbin/service iptables save
 %_init_restart iptables
 %endif
