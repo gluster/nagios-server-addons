@@ -12,6 +12,7 @@ dist_glusternagiosplugins_PYTHON = \
 	config_generator.py \
 	servicesnmptrapgenerator.py \
 	submit_external_command.py \
+	brick_status_event_handler.py \
 	server_utils.py \
 	$(NULL)
 
