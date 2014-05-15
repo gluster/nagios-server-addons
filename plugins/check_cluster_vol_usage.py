@@ -30,6 +30,8 @@
 import sys
 import re
 from argparse import ArgumentParser
+import json
+
 import livestatus
 from glusternagios import utils
 
@@ -37,25 +39,31 @@ from glusternagios import utils
 def checkVolumePerfData(clusterName):
 
     # Write command to socket
-    cmd = "GET services\nColumns: description host_name " \
-          "perf_data custom_variables\nFilter: " \
-          "description ~~ %s" % 'Volume Utilization -'
-    table = livestatus.readLiveStatus(cmd)
+    cmd = ("GET services\nColumns: description host_name "
+           "perf_data custom_variables\n"
+           "Filter: host_name = %s\n"
+           "Filter: description ~~ %s\n"
+           % (clusterName, 'Volume Utilization -'))
+
+    perf_data_output = livestatus.readLiveStatusAsJSON(cmd)
+    perf_data = json.loads(perf_data_output)
+    numvolumes = 0
     totalUsed = 0.0
     totalAvail = 0.0
-    for row in table:
+    for row in perf_data:
+        numvolumes += 1
         if len(row) <= 3:
             return 0.0, 0.0
-        host = row[1]
+
         perf_data = row[2]
         if len(perf_data) > 2:
             perf_arr = perf_data.split(' ')
             used = perf_arr[2].split('=')[1]
             avail = perf_arr[1].split('=')[1]
-            if host == clusterName:
-                totalUsed += float(re.match(r'\d*\.?\d+', used).group())
-                totalAvail += float(re.match(r'\d*\.?\d+', avail).group())
-    return totalUsed, totalAvail
+
+            totalUsed += float(re.match(r'\d*\.?\d+', used).group())
+            totalAvail += float(re.match(r'\d*\.?\d+', avail).group())
+    return numvolumes, totalUsed, totalAvail
 
 # Main method
 if __name__ == "__main__":
@@ -82,13 +90,18 @@ if __name__ == "__main__":
                         required=True)
     args = parser.parse_args()
     # Check the various performance statuses for the host
-    used, avail = checkVolumePerfData(args.hostgroup)
+    numVolumes, used, avail = checkVolumePerfData(args.hostgroup)
     statusstr = utils.PluginStatus.OK
     exitstatus = utils.PluginStatusCode.OK
-    if used == 0 and avail == 0:
+    if numVolumes == 0:
+        statusstr = utils.PluginStatus.OK
+        exitstatus = utils.PluginStatusCode.OK
+        print ("%s - No volumes found|used=0;%s;%s;0;%s;"
+               % (statusstr, args.warn, args.crit, 100))
+    elif numVolumes > 0 and used == 0 and avail == 0:
         statusstr = utils.PluginStatus.UNKNOWN
         exitstatus = utils.PluginStatusCode.UNKNOWN
-        print ("%s - No volumes found" % statusstr)
+        print ("%s - Volume utilization data could not be read" % statusstr)
     else:
         warn = int((args.warn * avail) / 100.0)
         crit = int((args.crit * avail) / 100.0)
