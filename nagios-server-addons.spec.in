@@ -204,6 +204,7 @@ fi
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_memory.php
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_swap_usage.php
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_vol_utilization.php
+%{_datadir}/nagios/html/pnp4nagios/templates.dist/check_brick_usage.php
 %attr(0755, -, -) %{_libdir}/nagios/plugins/gluster/*
 %attr(0775, root, nagios) %dir %{_sysconfdir}/nagios/gluster
 %attr(-, root, nagios) %{_sysconfdir}/nagios/gluster/snmpmanagers.conf

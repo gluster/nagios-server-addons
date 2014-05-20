@@ -6,6 +6,7 @@ pnp4nagiostemplate_DATA = \
 	check_memory.php \
 	check_swap_usage.php \
 	check_vol_utilization.php \
+	check_brick_usage.php \
         $(NULL)
 
 EXTRA_DIST = \

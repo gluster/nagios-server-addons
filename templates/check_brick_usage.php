@@ -27,7 +27,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 
   # set graph labels
   $max_limit = $VAL['MAX'];
-  $opt[$KEY]     = "--vertical-label \"%(Total: $max_limit GB) \"  --lower-limit 0 --upper-limit 100 --title \"$name[$KEY]\" ";
+  $opt[$KEY]     = "--vertical-label \"%(Total: $max_limit GB) \"  --lower-limit 0 --upper-limit 100 -r --title \"$name[$KEY]\" ";
 
   # Graph Definitions
   $def[$KEY]     = rrd::def( "var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" );
