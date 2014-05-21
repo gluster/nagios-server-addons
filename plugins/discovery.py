@@ -493,7 +493,7 @@ if __name__ == '__main__':
     #auto mode means write the configurations without asking confirmation
     elif args.mode == "auto":
         writeDelta(clusterDelta, configManager, args.force,
-                   args.nagiosServerIP, args.mode)
+                   args.nagiosServerIP, args.mode, args.timeout)
         msg = "Cluster configurations synced successfully from host %s" % \
               (args.hostip)
         print msg
