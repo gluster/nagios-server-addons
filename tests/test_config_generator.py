@@ -31,7 +31,9 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self._verifyConfig(clusterConfig, clusterData)
 
     def _verifyConfig(self, clusterConfig, clusterData):
-        self.assertTrue(len(clusterConfig), len(clusterData['hosts']) + 1)
+        self.assertTrue(clusterConfig['hostgroup_name'], clusterData['name'])
+        self.assertTrue(len(clusterConfig['_hosts']),
+                        len(clusterData['hosts']) + 1)
         self._verifyClusterConfig(clusterConfig["_hosts"][0], clusterData)
         for index in range(0, len(clusterData['hosts'])):
             self._verifyHostConfig(clusterConfig['_hosts'][index + 1],
@@ -46,16 +48,11 @@ class TestGlusterNagiosConfManager(TestCaseBase):
 
     def _verifyHostServices(self, hostConfig, hostData):
         for brick in hostData['bricks']:
-            serviceDesc = "Brick - %s" % brick['brickpath']
-            service = self._findServiceInList(hostConfig['host_services'],
-                                              serviceDesc)
-            self.assertNotEqual(service, None,
-                                "Brick status service is not created")
-            serviceDesc = "Brick Utilization - %s" % brick['brickpath']
-            service = self._findServiceInList(hostConfig['host_services'],
-                                              serviceDesc)
-            self.assertNotEqual(service, None,
-                                "Brick Utilization service is not created")
+            self._checkServiceExists("Brick - %s" % brick['brickpath'],
+                                     hostConfig['host_services'])
+            self._checkServiceExists(
+                "Brick Utilization - %s" % brick['brickpath'],
+                hostConfig['host_services'])
 
     def _verifyClusterConfig(self, config, clusterData):
         self.assertEqual(config['host_name'], clusterData['name'])
@@ -65,38 +62,50 @@ class TestGlusterNagiosConfManager(TestCaseBase):
         self.assertEqual(config['use'], 'gluster-cluster')
         self._verifyClusterServices(config, clusterData)
 
-    def _verifyClusterServices(self, clusterConfig, clusterData):
-        self.assertEqual(len(clusterConfig['host_services']), 8)
-        serviceDesc = 'Cluster - Quorum'
-        service = self._findServiceInList(clusterConfig['host_services'],
-                                          serviceDesc)
+    def _checkServiceExists(self, serviceDesc, serviceList):
+        service = self._findServiceInList(serviceList, serviceDesc)
         self.assertNotEqual(service, None,
-                            "Cluster Quorum service is not created")
+                            "%s service is not created" % serviceDesc)
+
+    def _verifyClusterServices(self, clusterConfig, clusterData):
+        totalServices = 0
+        services = clusterConfig['host_services']
+        self._checkServiceExists("Cluster - Quorum", services)
+        self._checkServiceExists("Cluster Auto Config", services)
+        self._checkServiceExists("Cluster Utilization", services)
+
+        totalServices += 3
+
         for volume in clusterData['volumes']:
-            self._verifyVolumeServices(clusterConfig['host_services'], volume)
+            totalServices += self._verifyVolumeServices(
+                clusterConfig['host_services'], volume)
+        self.assertEqual(len(clusterConfig['host_services']), totalServices)
 
     def _verifyVolumeServices(self, serviceList, volume):
         serviceDesc = 'Volume Utilization - %s' % (volume['name'])
-        service = self._findServiceInList(serviceList, serviceDesc)
-        self.assertNotEqual(service, None,
-                            "Volume utilization service is not created")
-        serviceDesc = 'Volume Status - %s' % (volume['name'])
-        service = self._findServiceInList(serviceList, serviceDesc)
-        self.assertNotEqual(service, None,
-                            "Volume Status service is not created")
-        serviceDesc = 'Volume Quota - %s' % (volume['name'])
-        service = self._findServiceInList(serviceList, serviceDesc)
-        self.assertNotEqual(service, None,
-                            "Volume Status Quota service is not created")
-        serviceDesc = 'Volume Geo-Replication - %s' % (volume['name'])
-        service = self._findServiceInList(serviceList, serviceDesc)
-        self.assertNotEqual(service, None,
-                            "Volume Geo-Replication service is not created")
-        if 'Replicate' in volume['type']:
+        self._checkServiceExists('Volume Utilization - %s' % (volume['name']),
+                                 serviceList)
+        self._checkServiceExists('Volume Status - %s' % (volume['name']),
+                                 serviceList)
+        serviceCount = 2
+
+        if volume.get('quota') == 'on':
+            self._checkServiceExists('Volume Quota - %s' % (volume['name']),
+                                     serviceList)
+            serviceCount += 1
+
+        if volume.get('geo-rep') == 'on':
+            self._checkServiceExists(
+                'Volume Geo-Replication - %s' % (volume['name']), serviceList)
+            serviceCount += 1
+
+        if 'REPLICATE' in volume['type']:
             serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
             service = self._findServiceInList(serviceList, serviceDesc)
             self.assertNotEqual(service, None,
                                 "Volume Self-Heal service is not created")
+            serviceCount += 1
+        return serviceCount
 
     def _findServiceInList(self, serviceList, serviceDescription):
         for service in serviceList:
@@ -104,10 +113,10 @@ class TestGlusterNagiosConfManager(TestCaseBase):
                 return service
         return None
 
-    def createBricks(self, count, volume, hostip):
+    def createBricks(self, count, volume, hostip, base):
         bricks = []
         for number in range(count):
-            brickDir = "/mnt/Brick-%s" % (number + 1)
+            brickDir = "%s-%s" % (base, (number + 1))
             bricks.append({'brickpath': brickDir,
                            'volumeName': volume,
                            'hostip': hostip})
@@ -115,19 +124,30 @@ class TestGlusterNagiosConfManager(TestCaseBase):
 
     def _createDummyCluster(self):
         cluster = {'name': 'Test-Cluster', 'hosts': [], 'volumes': []}
+
+        cluster['volumes'].append({'name': 'Volume1', "type": "REPLICATE",
+                                   'quota': 'on', 'geo-rep': 'on'})
+        host1Bricks = self.createBricks(1, "Volume1", '10.70.43.1',
+                                        '/mnt/v1/bricks')
+        host2Bricks = self.createBricks(2, "Volume1", '10.70.43.2',
+                                        '/mnt/v1/bricks')
+
+        cluster['volumes'].append({'name': 'Volume2', "type": "DISTRIBUTE"})
+        host1Bricks.extend(self.createBricks(1, "Volume2", '10.70.43.1',
+                                             '/mnt/v2/bricks'))
+        host2Bricks.extend(self.createBricks(1, "Volume2", '10.70.43.2',
+                                             '/mnt/v2/bricks'))
+
         cluster['hosts'].append({'hostip': '10.70.43.1',
                                  'hostname': 'host-1',
                                  'uuid': '0000-1111',
                                  'status': HostStatus.CONNECTED,
-                                 'bricks': self.createBricks(1, "Volume1",
-                                                             '10.70.43.1')})
+                                 'bricks': host1Bricks})
         cluster['hosts'].append({'hostip': '10.70.43.2',
                                  'hostname': 'host-2',
                                  'status': HostStatus.CONNECTED,
                                  'uuid': '0000-1112',
-                                 'bricks': self.createBricks(2, "Volume1",
-                                                             '10.70.43.2')})
-        cluster['volumes'].append({'name': 'Volume1', "type": "Replicate"})
+                                 'bricks': host2Bricks})
         return cluster
 
     def _getGlusterNagiosConfManager(self):

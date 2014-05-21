@@ -155,18 +155,20 @@ class GlusterNagiosConfManager:
             volumeService = self.__createVolumeUtilizationService(volume,
                                                                   clusterName)
             volumeServices.append(volumeService)
-            volumeService = self.__createVolumeQuotaStatusService(volume,
-                                                                  clusterName)
-            volumeServices.append(volumeService)
-            if 'REPLICATE' in volume['type'].upper():
-                volumeService = (self.
-                                 __createVolumeHealStatusService(volume,
-                                                                 clusterName))
+            if volume.get('quota') == "on":
+                volumeService = self.__createVolumeQuotaStatusService(
+                    volume, clusterName)
                 volumeServices.append(volumeService)
-            volumeService = (self.
-                             __createVolumeGeoRepStatusService(volume,
-                                                               clusterName))
-            volumeServices.append(volumeService)
+
+            if 'REPLICATE' in volume['type'].upper():
+                volumeService = self.__createVolumeHealStatusService(
+                    volume, clusterName)
+                volumeServices.append(volumeService)
+            if volume.get('geo-rep') == "on":
+                volumeService = self.__createVolumeGeoRepStatusService(
+                    volume, clusterName)
+                volumeServices.append(volumeService)
+
             volumeService = self.__createVolumeStatusService(volume,
                                                              clusterName)
             volumeServices.append(volumeService)
