@@ -48,29 +48,119 @@ def _getVolGeoRepStatusNRPECommand(volume):
     return ("check_vol_status -a %s %s" % (volume, 'geo-rep'))
 
 
+#This function gets the replica pairs
+#bricks - list of bricks in the volume
+#pair_index - nth pair of replica's needs to be returned
+#rCount - replica count
+def getReplicaSet(bricks, pair_index, rCount):
+    start_index = (pair_index*rCount)-rCount
+    return(bricks[start_index:start_index+rCount])
+
+
+def _getVolDetailNRPECommand(volume):
+    return ("discover_volume_info -a %s" % (volume))
+
+
 def _getVolumeStatusOutput(hostgroup, volume):
     status, output = _executeRandomHost(hostgroup,
                                         _getVolStatusNRPECommand(volume))
     if status == utils.PluginStatusCode.OK:
-        #Following query will return the output in format [[2,0]]
-        #no.of bricks in OK state - 2 , CRITICAL state - 0
-        brick_states_output = livestatus.readLiveStatusAsJSON(
+        brick_details = json.loads(livestatus.readLiveStatusAsJSON(
             "GET services\n"
+            "Columns: description state host_address host_name\n"
             "Filter: host_groups >= %s\n"
             "Filter: custom_variable_values >= %s\n"
             "Filter: description ~ Brick - \n"
-            "Stats: state = 0\n"
-            "Stats: state = 2\n"
-            % (hostgroup, volume))
-        brick_states = json.loads(brick_states_output)
-        bricks_ok = brick_states[0][0]
-        bricks_critical = brick_states[0][1]
+            % (hostgroup, volume)))
+        #output will be as below:
+        #[[u'Brick - /root/b3', 0, u'10.70.42.246', u'nishanth-rhs-2']]
+        #parse this to find the no of critical/ok bricks and list of
+        #critical bricks
+        bricks_ok = 0
+        bricks_critical = 0
+        brick_list_critical = []
+        for brick_detail in brick_details:
+            if brick_detail[1] == utils.PluginStatusCode.OK:
+                bricks_ok += 1
+            elif brick_detail[1] == utils.PluginStatusCode.CRITICAL:
+                bricks_critical += 1
+                #get the critical brick's host uuid if not present
+                #int the list
+                custom_vars = json.loads(livestatus.readLiveStatusAsJSON(
+                    "GET hosts\n"
+                    "Columns: custom_variables\n"
+                    "Filter: groups >= %s\n"
+                    "Filter: name = %s\n"
+                    % (hostgroup, brick_detail[3])))
+                brick_dict = {}
+                brick_dict['brick'] = brick_detail[2] + ":" + \
+                    brick_detail[0][brick_detail[0].find("/"):]
+                brick_dict['uuid'] = custom_vars[0][0]['HOST_UUID']
+                brick_list_critical.append(brick_dict)
+        #Get volume details
+        nrpeStatus, nrpeOut = _executeRandomHost(
+            hostgroup, _getVolDetailNRPECommand(volume))
+        volInfo = json.loads(nrpeOut)
+        #Get the volume type
+        vol_type = volInfo[volume]['type']
         if bricks_ok == 0 and bricks_critical > 0:
             status = utils.PluginStatusCode.CRITICAL
-            output = "All the bricks are in CRITICAL state"
+            output = "CRITICAL: Volume : %s type - All bricks " \
+                     "are down " % (vol_type)
+        elif bricks_ok > 0 and bricks_critical == 0:
+            status = utils.PluginStatusCode.OK
+            output = "OK: Volume : %s type - All bricks " \
+                     "are Up " % (vol_type)
         elif bricks_critical > 0:
-            status = utils.PluginStatusCode.WARNING
-            output = "One or more bricks are in CRITICAL state"
+            if (vol_type == "DISTRIBUTE"):
+                status = utils.PluginStatusCode.CRITICAL
+                output = "CRITICAL: Volume : %s type \n Brick(s) - <%s> " \
+                         "is|are down " % \
+                         (vol_type, ', '.join(dict['brick']for dict in
+                                              brick_list_critical))
+            elif (vol_type == "DISTRIBUTED_REPLICATE" or
+                    vol_type == "REPLICATE"):
+                output = "WARNING: Volume : %s type \n Brick(s) - <%s> " \
+                         "is|are down, but replica pair(s) are up" % \
+                         (vol_type, ', '.join(dict['brick']for dict in
+                                              brick_list_critical))
+                status = utils.PluginStatusCode.WARNING
+                bricks = []
+                for brick in volInfo[volume]['bricks']:
+                    bricks.append(
+                        {'brick': brick['brickaddress'] + ":" +
+                            brick['brickpath'], 'uuid': brick['hostUuid']})
+                #check whether the replica is up for the bricks
+                # which are down
+                rCount = int(volInfo[volume]['replicaCount'])
+                noOfReplicas = len(bricks)/rCount
+                for index in range(1, noOfReplicas+1):
+                    replica_list = getReplicaSet(bricks, index, rCount)
+                    noOfBricksDown = 0
+                    for brick in replica_list:
+                        for brick_critical in brick_list_critical:
+                            if brick.get('uuid') == brick_critical.get('uuid')\
+                                    and brick.get('brick').split(':')[1] == \
+                                    brick_critical.get('brick').split(':')[1]:
+                                noOfBricksDown += 1
+                                break
+                    if noOfBricksDown == rCount:
+                        output = "CRITICAL: Volume : %s type \n Bricks " \
+                                 "- <%s> are down, along with one or more " \
+                                 "replica pairs" % \
+                                 (vol_type,
+                                  ', '.join(dict['brick']for dict in
+                                            brick_list_critical))
+                        status = utils.PluginStatusCode.CRITICAL
+                        break
+            else:
+                output = "WARNING: Volume : %s type \n Brick(s) - <%s> " \
+                         "is|are down" % (vol_type,
+                                          ', '.join(dict['brick']
+                                                    for dict in
+                                                    brick_list_critical))
+                status = utils.PluginStatusCode.WARNING
+        return status, output
     return status, output
 
 
