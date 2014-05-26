@@ -34,6 +34,11 @@ CHANGE_MODE_ADD = "ADD"
 CHANGE_MODE_REMOVE = "REMOVE"
 CHANGE_MODE_UPDATE = "UPDATE"
 GENERATED_BY_AUTOCONFIG = "__GENERATED_BY_AUTOCONFIG"
+VOL_NAME = '_VOL_NAME'
+BRICK_DIR = '_BRICK_DIR'
+HOST_UUID = '_HOST_UUID'
+NOTES = 'notes'
+SERVICE_FIELDS_TO_FORCE_SYNC = [VOL_NAME, NOTES]
 
 
 class GlusterNagiosConfManager:
@@ -58,7 +63,7 @@ class GlusterNagiosConfManager:
         if services:
             host['host_services'] = services
         if uuid:
-            host['_HOST_UUID'] = uuid
+            host[HOST_UUID] = uuid
         return host
 
     def __createVolumeUtilizationService(self, volume, clusterName):
@@ -67,11 +72,11 @@ class GlusterNagiosConfManager:
         volumeService['use'] = 'gluster-service-with-graph'
         serviceDesc = 'Volume Utilization - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
-        volumeService['_VOL_NAME'] = volume['name']
+        volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_utilization!%s!%s!70!90' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
-        volumeService['notes'] = "Volume type : %s" % (volume['type'])
+        volumeService[NOTES] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def __createVolumeStatusService(self, volume, clusterName):
@@ -80,11 +85,11 @@ class GlusterNagiosConfManager:
         volumeService['use'] = 'gluster-service-without-graph'
         serviceDesc = 'Volume Status - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
-        volumeService['_VOL_NAME'] = volume['name']
+        volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
-        volumeService['notes'] = "Volume type : %s" % (volume['type'])
+        volumeService[NOTES] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def __createVolumeQuotaStatusService(self, volume, clusterName):
@@ -93,11 +98,11 @@ class GlusterNagiosConfManager:
         volumeService['use'] = 'gluster-service-without-graph'
         serviceDesc = 'Volume Quota - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
-        volumeService['_VOL_NAME'] = volume['name']
+        volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_quota_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
-        volumeService['notes'] = "Volume type : %s" % (volume['type'])
+        volumeService[NOTES] = "Volume type : %s" % (volume['type'])
         return volumeService
 
     def __createVolumeHealStatusService(self, volume, clusterName):
@@ -106,7 +111,7 @@ class GlusterNagiosConfManager:
         volumeService['use'] = 'gluster-service-without-graph'
         serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
-        volumeService['_VOL_NAME'] = volume['name']
+        volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_heal_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
@@ -118,7 +123,7 @@ class GlusterNagiosConfManager:
         volumeService['use'] = 'gluster-service-without-graph'
         serviceDesc = 'Volume Geo-Replication - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
-        volumeService['_VOL_NAME'] = volume['name']
+        volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_georep_status!%s!%s' % \
                        (clusterName, volume['name'])
         volumeService['check_command'] = checkCommand
@@ -180,9 +185,9 @@ class GlusterNagiosConfManager:
         brickService['host_name'] = hostName
         serviceDesc = "Brick Utilization - %s" % brick['brickpath']
         brickService['service_description'] = serviceDesc
-        brickService['_BRICK_DIR'] = brick['brickpath']
-        brickService['_VOL_NAME'] = brick['volumeName']
-        brickService['notes'] = "Volume : %s" % (brick['volumeName'])
+        brickService[BRICK_DIR] = brick['brickpath']
+        brickService[VOL_NAME] = brick['volumeName']
+        brickService[NOTES] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
     def __createBrickStatusService(self, brick, hostName):
@@ -191,9 +196,9 @@ class GlusterNagiosConfManager:
         brickService['host_name'] = hostName
         serviceDesc = "Brick - %s" % brick['brickpath']
         brickService['service_description'] = serviceDesc
-        brickService['_BRICK_DIR'] = brick['brickpath']
-        brickService['_VOL_NAME'] = brick['volumeName']
-        brickService['notes'] = "Volume : %s" % (brick['volumeName'])
+        brickService[BRICK_DIR] = brick['brickpath']
+        brickService[VOL_NAME] = brick['volumeName']
+        brickService[NOTES] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
     #Create all Brick related service here.

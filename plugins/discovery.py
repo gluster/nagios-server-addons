@@ -34,6 +34,7 @@ from config_generator import CHANGE_MODE_ADD
 from config_generator import CHANGE_MODE_REMOVE
 from config_generator import CHANGE_MODE_UPDATE
 from config_generator import GENERATED_BY_AUTOCONFIG
+from config_generator import SERVICE_FIELDS_TO_FORCE_SYNC
 
 
 #Discovers volumes info one by one.
@@ -175,6 +176,22 @@ def findDeletedServices(host):
     return deletedService
 
 
+#Looks for changes in the interesting service config fields. These fields
+#will be force synced without preserving user changes. All these fields
+#are list as part of config_generator.SERVICE_FIELDS_TO_FORCE_SYNC
+def findChangeInService(newService, oldService):
+    changes = {}
+    for field in SERVICE_FIELDS_TO_FORCE_SYNC:
+        if newService.get(field) != oldService.get(field):
+            if not changes:
+                changes['service_description'] = \
+                    newService['service_description']
+                changes['host_name'] = newService['host_name']
+                changes['changeMode'] = CHANGE_MODE_UPDATE
+            changes[field] = newService.get(field)
+    return changes
+
+
 #Check if auto config is changed. IP address in the check command will change
 #when user runs the auto config using different host.
 def findChangeInAutoConfig(newService, oldService):
@@ -192,7 +209,7 @@ def findChangeInAutoConfig(newService, oldService):
     return None
 
 
-#Find all Added/Deleted services in the given host.
+#Find all Added/Updated/Deleted services in the given host.
 #Note: 'Cluster Auto Config' is a special service. When user runs the
 #auto-config using different host instead what is used previously then we
 #have to update the host ip in existing auto-config service.
@@ -206,6 +223,10 @@ def findServiceDelta(host):
             serviceDelta.append(service)
         elif serviceConfig['service_description'] == "Cluster Auto Config":
             changes = findChangeInAutoConfig(service, serviceConfig)
+            if changes:
+                serviceDelta.append(changes)
+        else:
+            changes = findChangeInService(service, serviceConfig)
             if changes:
                 serviceDelta.append(changes)
     serviceDelta.extend(findDeletedServices(host))
