@@ -21,8 +21,14 @@ glusternagiosmibs_DATA = \
 	NAGIOS-ROOT-MIB \
         $(NULL)
 
+sudodir = $(sysconfdir)/sudoers.d/
+sudo_DATA = \
+	nagios \
+	$(NULL)
+
 EXTRA_DIST = \
 	$(glusternagiosconf_DATA) \
 	$(glusternagiosdefaultconf_DATA) \
 	$(glusternagiosmibs_DATA) \
+	$(sudo_DATA) \
         $(NULL)

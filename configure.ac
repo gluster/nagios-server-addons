@@ -100,6 +100,7 @@ AC_CONFIG_FILES([
 	Makefile
 	nagios-server-addons.spec
 	config/Makefile
+	config/nagios
 	plugins/check_remote_host.py
 	plugins/constants.py
 	plugins/gluster_host_service_handler.py

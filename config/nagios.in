@@ -1,0 +1,5 @@
+Cmnd_Alias NAGIOS_PATHS = @bindir@/snmptrap, \
+    @libdir@/nagios/plugins/gluster/discovery.py
+
+nagios  ALL=(ALL) NOPASSWD: NAGIOS_PATHS
+Defaults:nagios !requiretty
