@@ -16,7 +16,17 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
+from pynag import Model
+
 from plugins import discovery, server_utils
+from plugins.config_generator import GLUSTER_AUTO_CONFIG
+from plugins.config_generator import HOST_SERVICES
+from plugins.config_generator import VOL_NAME
+from plugins.config_generator import CHANGE_MODE
+from plugins.config_generator import CHANGE_MODE_ADD
+from plugins.config_generator import CHANGE_MODE_REMOVE
+from plugins.config_generator import CHANGE_MODE_UPDATE
+from plugins.config_generator import NOTES
 from glusternagios.glustercli import HostStatus
 from testrunner import PluginsTestCase as TestCaseBase
 
@@ -103,3 +113,86 @@ class TestDiscovery(TestCaseBase):
                                                 clusterName,
                                                 timeout=None)
         self._verifyClusterData(clusterdata, clusterName, host)
+
+    def mockFindDeletedServices(self, hostConfig):
+        return [{'service_description': 'Brick - /bricks/v1-deleted',
+                CHANGE_MODE: CHANGE_MODE_REMOVE}]
+
+    def mockGetServiceConfig(self, serviceDesc, hostName):
+        if serviceDesc == 'Brick - /bricks/v1-no-change':
+            return self.fillServiceModel({'service_description': serviceDesc,
+                                          'host_name': hostName,
+                                          'use':
+                                          'gluster-brick-status-service',
+                                          VOL_NAME: 'V1'})
+        elif serviceDesc == 'Brick - /bricks/v1-new':
+            return None
+        elif serviceDesc == 'Brick - /bricks/v1-update':
+            return self.fillServiceModel({'service_description': serviceDesc,
+                                          'host_name': hostName,
+                                          'use':
+                                          'gluster-brick-status-service',
+                                          VOL_NAME: 'V1',
+                                          NOTES: 'Volume Type : Replicate'})
+        elif serviceDesc == GLUSTER_AUTO_CONFIG:
+            return self.fillServiceModel({'service_description': serviceDesc,
+                                          'host_name': hostName,
+                                          'use': 'gluster-service',
+                                          'check_command':
+                                          'gluster_auto_discovery!'
+                                          '10.70.43.0!10.70.43.57'})
+
+    def fillServiceModel(self, values):
+        serviceModel = Model.Service()
+        for key, value in values.iteritems():
+            serviceModel[key] = value
+        return serviceModel
+
+    def testFindServiceDelta(self):
+        server_utils.getServiceConfig = self.mockGetServiceConfig
+        discovery.findDeletedServices = self.mockFindDeletedServices
+        serviceDelta = discovery.findServiceDelta(self.getDummyHostConfig())
+        self.assertEqual(len(serviceDelta), 4)
+        service = discovery.findServiceInList(
+            serviceDelta, 'Brick - /bricks/v1-no-change')
+        self.assertEqual(service, None)
+        service = discovery.findServiceInList(
+            serviceDelta, 'Brick - /bricks/v1-new')
+        self.assertEqual(service[CHANGE_MODE], CHANGE_MODE_ADD)
+        service = discovery.findServiceInList(
+            serviceDelta, 'Brick - /bricks/v1-update')
+        self.assertEqual(service[CHANGE_MODE], CHANGE_MODE_UPDATE)
+        self.assertEqual(service[VOL_NAME], 'V2')
+        service = discovery.findServiceInList(
+            serviceDelta, 'Brick - /bricks/v1-deleted')
+        self.assertEqual(service[CHANGE_MODE], CHANGE_MODE_REMOVE)
+        service = discovery.findServiceInList(
+            serviceDelta, GLUSTER_AUTO_CONFIG)
+        self.assertEqual(service[CHANGE_MODE], CHANGE_MODE_UPDATE)
+        self.assertEqual(service['check_command'],
+                         'gluster_auto_discovery!10.70.43.57!10.70.43.57')
+
+    def getDummyHostConfig(self):
+        hostServices = []
+        hostServices.append({'service_description':
+                             'Brick - /bricks/v1-no-change',
+                             'host_name': 'host-1',
+                             'use': 'gluster-brick-status-service',
+                             VOL_NAME: 'V1'})
+        hostServices.append({'service_description': 'Brick - /bricks/v1-new',
+                             'host_name': 'host-1',
+                             'use': 'gluster-brick-status-service',
+                             VOL_NAME: 'V1'})
+        hostServices.append({'service_description':
+                             'Brick - /bricks/v1-update',
+                             'host_name': 'host-1',
+                             'use': 'gluster-brick-status-service',
+                             VOL_NAME: 'V2',
+                             NOTES: 'Volume Type : Replicate'})
+        hostServices.append({'service_description': GLUSTER_AUTO_CONFIG,
+                             'host_name': 'host-1',
+                             'use': 'gluster-service',
+                             'check_command':
+                             'gluster_auto_discovery!10.70.43.57!10.70.43.57'})
+        hostConfig = {HOST_SERVICES: hostServices}
+        return hostConfig

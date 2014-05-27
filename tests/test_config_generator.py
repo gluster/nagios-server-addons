@@ -17,6 +17,8 @@
 #
 
 from plugins import config_generator
+from plugins.config_generator import GLUSTER_AUTO_CONFIG
+from plugins.config_generator import HOST_SERVICES
 from glusternagios.glustercli import HostStatus
 from testrunner import PluginsTestCase as TestCaseBase
 
@@ -49,10 +51,10 @@ class TestGlusterNagiosConfManager(TestCaseBase):
     def _verifyHostServices(self, hostConfig, hostData):
         for brick in hostData['bricks']:
             self._checkServiceExists("Brick - %s" % brick['brickpath'],
-                                     hostConfig['host_services'])
+                                     hostConfig[HOST_SERVICES])
             self._checkServiceExists(
                 "Brick Utilization - %s" % brick['brickpath'],
-                hostConfig['host_services'])
+                hostConfig[HOST_SERVICES])
 
     def _verifyClusterConfig(self, config, clusterData):
         self.assertEqual(config['host_name'], clusterData['name'])
@@ -69,17 +71,17 @@ class TestGlusterNagiosConfManager(TestCaseBase):
 
     def _verifyClusterServices(self, clusterConfig, clusterData):
         totalServices = 0
-        services = clusterConfig['host_services']
+        services = clusterConfig[HOST_SERVICES]
         self._checkServiceExists("Cluster - Quorum", services)
-        self._checkServiceExists("Cluster Auto Config", services)
+        self._checkServiceExists(GLUSTER_AUTO_CONFIG, services)
         self._checkServiceExists("Cluster Utilization", services)
 
         totalServices += 3
 
         for volume in clusterData['volumes']:
             totalServices += self._verifyVolumeServices(
-                clusterConfig['host_services'], volume)
-        self.assertEqual(len(clusterConfig['host_services']), totalServices)
+                clusterConfig[HOST_SERVICES], volume)
+        self.assertEqual(len(clusterConfig[HOST_SERVICES]), totalServices)
 
     def _verifyVolumeServices(self, serviceList, volume):
         serviceDesc = 'Volume Utilization - %s' % (volume['name'])

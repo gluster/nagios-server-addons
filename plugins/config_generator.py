@@ -23,6 +23,7 @@ from pynag import Model
 import server_utils
 from glusternagios.glustercli import HostStatus
 
+
 """
 Change mode helps to identify the change in the defintion.
 "ADD" means the entity and all its sub entities are added.
@@ -30,14 +31,17 @@ Change mode helps to identify the change in the defintion.
 "UPDATE" means the entity is changes. It may also means sub entities
 are added or removed to the entity.
 """
+CHANGE_MODE = 'changeMode'
 CHANGE_MODE_ADD = "ADD"
 CHANGE_MODE_REMOVE = "REMOVE"
 CHANGE_MODE_UPDATE = "UPDATE"
+HOST_SERVICES = 'host_services'
 GENERATED_BY_AUTOCONFIG = "__GENERATED_BY_AUTOCONFIG"
 VOL_NAME = '_VOL_NAME'
 BRICK_DIR = '_BRICK_DIR'
 HOST_UUID = '_HOST_UUID'
 NOTES = 'notes'
+GLUSTER_AUTO_CONFIG = "Cluster Auto Config"
 SERVICE_FIELDS_TO_FORCE_SYNC = [VOL_NAME, NOTES]
 
 
@@ -61,7 +65,7 @@ class GlusterNagiosConfManager:
         #Host service is not a field in host configuration. It helps to
         #aggregate all the host services under the host
         if services:
-            host['host_services'] = services
+            host[HOST_SERVICES] = services
         if uuid:
             host[HOST_UUID] = uuid
         return host
@@ -149,7 +153,7 @@ class GlusterNagiosConfManager:
         service['host_name'] = clusterName
         service['use'] = 'gluster-service'
         service['check_interval'] = '1440'
-        service['service_description'] = 'Cluster Auto Config'
+        service['service_description'] = GLUSTER_AUTO_CONFIG
         service['check_command'] = "gluster_auto_discovery!%s" % (hostIp)
         return service
 
@@ -265,7 +269,7 @@ class GlusterNagiosConfManager:
     #Host group should contain the delta to be written to the configuration.
     #Delta will be processed using the change mode.
     def writeHostGroup(self, hostgroup):
-        changeMode = hostgroup['changeMode']
+        changeMode = hostgroup[CHANGE_MODE]
         if changeMode == CHANGE_MODE_ADD:
             hostgroupModel = Model.Hostgroup()
             hostgroupModel['hostgroup_name'] = hostgroup['hostgroup_name']
@@ -285,25 +289,25 @@ class GlusterNagiosConfManager:
     #used to represent the config model and changes.
     def fillModel(self, model, values):
         for key, value in values.iteritems():
-            if key not in ['changeMode', 'host_services']:
+            if key not in [CHANGE_MODE, HOST_SERVICES]:
                 model[key] = value
         return model
 
     #Write service to nagios config
     def writeService(self, service, hostname):
-        if service['changeMode'] == CHANGE_MODE_ADD:
+        if service[CHANGE_MODE] == CHANGE_MODE_ADD:
             serviceModel = Model.Service()
             serviceModel = self.fillModel(serviceModel, service)
             serviceModel.set_filename(self.getCfgFileName(hostname))
             serviceModel[GENERATED_BY_AUTOCONFIG] = 1
             serviceModel.save()
-        elif service['changeMode'] == CHANGE_MODE_REMOVE:
+        elif service[CHANGE_MODE] == CHANGE_MODE_REMOVE:
             serviceModel = Model.Service.objects.filter(
                 host_name=hostname,
                 service_description=service['service_description'])
             if serviceModel:
                 serviceModel[0].delete()
-        elif service['changeMode'] == CHANGE_MODE_UPDATE:
+        elif service[CHANGE_MODE] == CHANGE_MODE_UPDATE:
             serviceModel = server_utils.getServiceConfig(
                 service['service_description'], service['host_name'])
             self.fillModel(serviceModel, service)
@@ -313,32 +317,32 @@ class GlusterNagiosConfManager:
     #host_services filed contains the list of services to be written to
     #nagios configuration
     def writeHostServices(self, host):
-        for service in host['host_services']:
-            if service.get('changeMode') is None:
-                service['changeMode'] = host['changeMode']
+        for service in host[HOST_SERVICES]:
+            if service.get(CHANGE_MODE) is None:
+                service[CHANGE_MODE] = host[CHANGE_MODE]
             self.writeService(service, host['host_name'])
 
     #Write the host configuration with list of services to nagios configuration
     def writeHost(self, host):
-        if host['changeMode'] == CHANGE_MODE_REMOVE:
+        if host[CHANGE_MODE] == CHANGE_MODE_REMOVE:
             hostModel = Model.Host.objects.filter(
                 host_name=host['host_name'])
             if hostModel:
                 hostModel[0].delete(recursive=True)
             return
-        if host['changeMode'] == CHANGE_MODE_ADD:
+        if host[CHANGE_MODE] == CHANGE_MODE_ADD:
             hostModel = Model.Host()
             hostModel = self.fillModel(hostModel, host)
             hostModel.set_filename(self.getCfgFileName(host['host_name']))
             hostModel.save()
 
-        if host.get('host_services'):
+        if host.get(HOST_SERVICES):
             self.writeHostServices(host)
 
     def writeHosts(self, hosts, chageMode):
         for host in hosts:
-            if host.get('changeMode') is None:
-                host['changeMode'] = chageMode
+            if host.get(CHANGE_MODE) is None:
+                host[CHANGE_MODE] = chageMode
             self.writeHost(host)
 
     #Write the hostgroup delta to nagios configuration.
