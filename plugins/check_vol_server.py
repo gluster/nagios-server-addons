@@ -4,7 +4,6 @@ import json
 import random
 import argparse
 import livestatus
-import os
 
 from glusternagios import utils
 import server_utils
@@ -96,7 +95,7 @@ def _getVolumeQuotaStatusOutput(hostgroup, volume):
 
 def execNRPECommand(command):
     status, output, err = utils.execCmd(command.split(), raw=True)
-    return os.WEXITSTATUS(status), output
+    return status, output
 
 
 def _executeRandomHost(hostgroup, command):
