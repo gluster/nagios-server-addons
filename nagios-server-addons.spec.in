@@ -135,6 +135,17 @@ elif grep -q "process_performance_data=0" $NagiosCFGFile ; then
   sed -i -e 's/enable_environment_macros=0/enable_environment_macros=1/g' $NagiosCFGFile
 fi
 
+NagiosConfFile=/etc/httpd/conf.d/nagios.conf
+if grep -q "#.*SSLRequireSSL" $NagiosConfFile; then
+  sed -i -e 's/#.*SSLRequireSSL/   SSLRequireSSL/g' $NagiosConfFile
+fi
+
+cat > /etc/httpd/conf.d/glusternagios.conf << EOF
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^/nagios|^/pnp4nagios https://%{HTTP_HOST}%{REQUEST_URI}
+EOF
+
 if ! grep -q "#rhs performance monitoring" $NagiosCFGFile; then
 cat >> $NagiosCFGFile <<EOF
 #rhs performance monitoring
