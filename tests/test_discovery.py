@@ -16,8 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
 
-from pynag import Model
-
 from plugins import discovery, server_utils
 from plugins.config_generator import GLUSTER_AUTO_CONFIG
 from plugins.config_generator import HOST_SERVICES
@@ -143,7 +141,7 @@ class TestDiscovery(TestCaseBase):
                                           '10.70.43.0!10.70.43.57'})
 
     def fillServiceModel(self, values):
-        serviceModel = Model.Service()
+        serviceModel = {}
         for key, value in values.iteritems():
             serviceModel[key] = value
         return serviceModel
