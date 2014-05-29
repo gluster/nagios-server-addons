@@ -1,14 +1,7 @@
 #!/usr/bin/python
 #
-# check_remote_host.py -- nagios plugin uses Mklivestatus to get the overall
+# check_remote_host.py -- nagios plugin uses check_nrpe to check the host
 #                         status
-# of a host. The services considered by default for the status of the host
-# are -
-# 	1. LV/Inode Service status
-#	2. CPU Utilization
-#	3. Memory Utilization
-#	4. Network Utilization
-#	5. Swap Utilization
 #
 # Copyright (C) 2014 Red Hat Inc
 #
@@ -27,80 +20,32 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
 #
 
-import os
+import argparse
 import sys
-import getopt
-import json
 
-import livestatus
+import server_utils
 from glusternagios import utils
-
-
-# Method to execute livestatus
-def checkLiveStatus(hostAddr, srvc):
-    cmd = "GET services\nColumns: state\nFilter: " \
-          "description = %s\n" \
-          "Filter: host_address = %s" % (srvc, hostAddr)
-
-    table = livestatus.readLiveStatus(cmd)
-
-    if len(table) > 0 and len(table[0]) > 0:
-        return int(table[0][0])
-    else:
-        return utils.PluginStatusCode.UNKNOWN
-
-
-def _getHostMonitoringSrvcList():
-    srvc_list = []
-    with open("@hostmonitoringserviceslist@") as data_file:
-        srvc_list = json.load(data_file)['serviceList']
-    return srvc_list
-
-
-# Method to show the usage
-def showUsage():
-    usage = "Usage: %s -H <Host Address>\n" % os.path.basename(sys.argv[0])
-    sys.stderr.write(usage)
 
 
 # Main method
 if __name__ == "__main__":
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hH:", ["help", "host="])
-    except getopt.GetoptError as e:
-        print (str(e))
-        showUsage()
-        sys.exit(utils.PluginStatusCode.CRITICAL)
+    parser = argparse.ArgumentParser(description="Check Host Status Tool")
+    parser.add_argument('-H', '--hostip', action='store', dest='hostip',
+                        type=str, required=True, help='Host IP')
+    args = parser.parse_args()
 
-    hostAddr = ''
-    if len(opts) == 0:
-        showUsage()
-        sys.exit(utils.PluginStatusCode.CRITICAL)
+    # Check if the NRPE call goes through to the host
+    rc, out, err = utils.execCmd(
+        [
+            server_utils.nrpeCmdPath.cmd,
+            '-H',
+            args.hostip
+        ]
+    )
+
+    if rc == utils.PluginStatusCode.OK:
+        print "OK: Host is UP"
+        sys.exit(utils.PluginStatusCode.OK)
     else:
-        for opt, arg in opts:
-            if opt in ("-h", "--help"):
-                showUsage()
-                sys.exit()
-            elif opt in ("-H", "--host"):
-                hostAddr = arg
-            else:
-                showUsage()
-                sys.exit(utils.PluginStatusCode.CRITICAL)
-
-    # Calculate the consolidated status for the host based on above
-    # status of individual services
-    criticalSrvcs = []
-    for srvc in _getHostMonitoringSrvcList():
-        srvc_status = checkLiveStatus(hostAddr, srvc)
-        if srvc_status == utils.PluginStatusCode.CRITICAL:
-            criticalSrvcs.append(str(srvc))
-
-    # Return the status
-    if len(criticalSrvcs) > 0:
-        print "Host Status %s - Service(s) %s in CRITICAL state" % \
-            (utils.PluginStatus.WARNING, criticalSrvcs)
-        sys.exit(utils.PluginStatusCode.WARNING)
-
-    print "Host Status %s - Services in good health" % \
-        utils.PluginStatus.OK
-    sys.exit(utils.PluginStatusCode.OK)
+        print "CRITICAL: NRPE service on the host is down or not responding"
+        sys.exit(utils.PluginStatusCode.CRITICAL)
