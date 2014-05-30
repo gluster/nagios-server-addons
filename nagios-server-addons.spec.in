@@ -69,6 +69,7 @@ Requires(post):   iptables
 Requires:         check-mk-livestatus
 Requires:         gluster-nagios-common
 Requires:         httpd
+Requires:         mod_ssl
 Requires:         nagios
 Requires:         nagios-plugins-dummy
 Requires:         nagios-plugins-nrpe
