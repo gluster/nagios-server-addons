@@ -527,6 +527,19 @@ if __name__ == '__main__':
                        args.nagiosServerIP, args.mode, args.timeout)
             print "Cluster configurations synced successfully from host %s" % \
                   (args.hostip)
+            # Rename the configuration file for dummy host from temp_node1.cfg
+            # to temp_node1.cfg.sample as this host is not needed after other
+            # hosts are configured through auto-discovery.
+            dummy_host_config_file = DEFAULT_AUTO_CONFIG_DIR \
+                + '/default/temp_node1.cfg'
+            try:
+                if os.path.exists(dummy_host_config_file):
+                    os.rename(
+                        dummy_host_config_file,
+                        dummy_host_config_file + '.sample'
+                    )
+            except Exception as e:
+                pass
             #If Nagios is running then try to restart. Otherwise don't do
             #anything.
             if server_utils.isNagiosRunning():

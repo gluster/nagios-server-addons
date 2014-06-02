@@ -156,6 +156,7 @@ cfg_dir=/etc/nagios/gluster
 
 service_perfdata_command=process-service-perfdata
 host_perfdata_command=process-host-perfdata
+allow_empty_hostgroup_assignment=1
 broker_module=/usr/lib64/check_mk/livestatus.o @nagioslivestatussocketpath@
 EOF
 fi

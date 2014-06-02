@@ -12,7 +12,7 @@ glusternagiosconf_DATA = \
 glusternagiosdefaultconfdir = $(sysconfdir)/nagios/gluster/default
 glusternagiosdefaultconf_DATA = \
 	glustercluster.cfg.sample \
-	node1.cfg \
+	temp_node1.cfg \
         $(NULL)
 
 glusternagiosmibsdir = /usr/share/snmp/mibs
