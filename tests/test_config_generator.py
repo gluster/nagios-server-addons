@@ -72,7 +72,7 @@ class TestGlusterNagiosConfManager(TestCaseBase):
     def _verifyClusterServices(self, clusterConfig, clusterData):
         totalServices = 0
         services = clusterConfig[HOST_SERVICES]
-        self._checkServiceExists("Cluster - Quorum", services)
+        self._checkServiceExists("Cluster - Quorum Status", services)
         self._checkServiceExists(GLUSTER_AUTO_CONFIG, services)
         self._checkServiceExists("Cluster Utilization", services)
 

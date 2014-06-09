@@ -144,8 +144,9 @@ class GlusterNagiosConfManager:
     def createClusterQuorumService(self, clusterName):
         service = {}
         service['host_name'] = clusterName
-        service['use'] = 'gluster-passive-service'
-        service['service_description'] = 'Cluster - Quorum'
+        service['use'] = 'gluster-passive-freshness-service'
+        service['service_description'] = 'Cluster - Quorum Status'
+        service['check_command'] = 'check_quorum_status'
         return service
 
     def createClusterAutoConfigService(self, clusterName, hostIp):

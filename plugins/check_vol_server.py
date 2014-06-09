@@ -62,6 +62,10 @@ def _getVolGeoRepStatusNRPECommand(volume):
     return ("check_vol_status -a %s %s" % (volume, 'geo-rep'))
 
 
+def _getQuorumStatusNRPECommand():
+    return ("check_quorum_status")
+
+
 # This function gets the replica pairs
 # bricks - list of bricks in the volume
 # pair_index - nth pair of replica's needs to be returned
@@ -199,6 +203,25 @@ def _getVolumeQuotaStatusOutput(hostgroup, volume):
     return _executeRandomHost(hostgroup, _getVolQuotaStatusNRPECommand(volume))
 
 
+def _getQuorumStatusOutput(hostgroup):
+    # get current volume quorum status
+    table = livestatus.readLiveStatus("GET services\n"
+                                      "Columns: state,plugin_output\n"
+                                      "Filter: description = "
+                                      "Cluster - Quorum\n"
+                                      "Filter: host_name = %s\n" % hostgroup)
+    servicestatus = utils.PluginStatusCode.UNKNOWN
+    pluginoutput = ''
+    if len(table) > 0:
+        servicetab = table[0]
+        servicestatus = servicetab[0]
+        pluginoutput = servicetab[1]
+    if (int(servicestatus) != utils.PluginStatusCode.CRITICAL):
+        return _executeRandomHost(hostgroup, _getQuorumStatusNRPECommand())
+    else:
+        return servicestatus, pluginoutput
+
+
 def execNRPECommand(command):
     status, output, err = utils.execCmd(command.split(), raw=True)
     return status, output
@@ -255,6 +278,8 @@ def showVolumeOutput(args):
         command = _getVolSelfHealStatusNRPECommand(args.volume)
     elif args.option == 'geo-rep':
         command = _getVolGeoRepStatusNRPECommand(args.volume)
+    elif args.option == 'quorum':
+        return _getQuorumStatusOutput(args.hostgroup)
 
     return _executeRandomHost(args.hostgroup, command)
 
@@ -290,7 +315,8 @@ def parse_input():
                                  'status',
                                  'quota',
                                  'self-heal',
-                                 'geo-rep'])
+                                 'geo-rep',
+                                 'quorum'])
     parser.add_argument('-t', '--timeout',
                         action='store',
                         help='NRPE timeout')
