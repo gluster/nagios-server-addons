@@ -26,6 +26,7 @@
 %else
 %define _init_enable()  /sbin/chkconfig --add %1 ;
 %define _init_disable() /sbin/chkconfig --del %1 ;
+%define _init_on() /sbin/chkconfig %1 on ;
 %define _init_restart() /sbin/service %1 restart &>/dev/null ;
 %define _init_try_restart() /sbin/service %1 condrestart &>/dev/null ;
 %define _init_stop()    /sbin/service %1 stop &>/dev/null ;
@@ -206,8 +207,15 @@ fi
 
 %_init_enable nagios
 %_init_enable httpd
+%_init_enable nsca
+%if ( 0%{!?_with_systemd:1} )
+%_init_on nagios
+%_init_on nsca
+%_init_on httpd
+%endif
 %_init_restart nagios
 %_init_restart httpd
+%_init_restart nsca
 
 %files
 %defattr(-,root,root,-)
