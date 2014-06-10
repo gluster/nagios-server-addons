@@ -496,6 +496,13 @@ def _findDuplicateHost(hosts, clusterName):
                 return host.get('hostname')
 
 
+def getRemovedHostsCount(clusterDelta):
+    removedHostsCount = 0
+    for host in clusterDelta.get('_hosts', []):
+        if host.get(CHANGE_MODE) == CHANGE_MODE_REMOVE:
+            removedHostsCount += 1
+    return removedHostsCount
+
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster, args.timeout)
@@ -553,6 +560,14 @@ if __name__ == '__main__':
                 print "Start the Nagios service to monitor"
     #auto mode means write the configurations without asking confirmation
     elif args.mode == "auto":
+        removed_hosts_count = getRemovedHostsCount(clusterDelta)
+        if removed_hosts_count > 0:
+            hostsInCluster = server_utils.getHostConfigsForCluster(
+                args.cluster)
+            if removed_hosts_count == (len(hostsInCluster) - 1):
+                print "Can't remove all hosts except sync host in " \
+                      "'auto' mode. Run auto discovery manually"
+                sys.exit(utils.PluginStatusCode.CRITICAL)
         writeDelta(clusterDelta, configManager, args.force,
                    args.nagiosServerIP, args.mode, args.timeout)
         msg = "Cluster configurations synced successfully from host %s" % \
