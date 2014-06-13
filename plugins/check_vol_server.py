@@ -10,12 +10,14 @@ import server_utils
 
 
 def _getListHosts(hostgroup):
-    table = livestatus.readLiveStatus("GET hostgroups\nColumns: members\n"
-                                      "Filter: name = "
-                                      + hostgroup + "\n")
-    tab1 = table[0]
-    list_hosts = tab1[0].split(",")
-    #First take a random host from the group and send the request
+    list_hosts = []
+    table = json.loads(livestatus.readLiveStatusAsJSON(
+        "GET hostgroups\nColumns: members_with_state\n"
+        "Filter: name = " + hostgroup + "\n"))[0][0]
+    #Get the only those nodes which are UP
+    for row in table:
+        if row[1] == utils.HostStatusCode.UP:
+            list_hosts.append(row[0])
     return list_hosts
 
 
@@ -190,6 +192,10 @@ def execNRPECommand(command):
 
 def _executeRandomHost(hostgroup, command):
     list_hosts = _getListHosts(hostgroup)
+    if not list_hosts:
+        status = utils.PluginStatusCode.UNKNOWN
+        output = " UNKNOWN: No hosts(with state UP) found in the cluster"
+        return status, output
     host = random.choice(list_hosts)
     #Get the address of the host
     host_address = _getHostAddress(host)
