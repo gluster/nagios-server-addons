@@ -490,10 +490,12 @@ def _getHostGroupNames(hostConfig):
 
 def _findDuplicateHost(hosts, clusterName):
     for host in hosts:
-        hostConfig = server_utils.getHostConfigByName(host.get('hostname'))
-        if hostConfig:
-            if clusterName not in _getHostGroupNames(hostConfig):
-                return host.get('hostname')
+        #Host name may be empty if the host is in disconnected status
+        if host.get('hostname'):
+            hostConfig = server_utils.getHostConfigByName(host.get('hostname'))
+            if hostConfig:
+                if clusterName not in _getHostGroupNames(hostConfig):
+                    return host.get('hostname')
 
 
 def getRemovedHostsCount(clusterDelta):
