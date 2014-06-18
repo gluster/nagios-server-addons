@@ -206,13 +206,17 @@ def _executeRandomHost(hostgroup, command):
 
     if status != utils.PluginStatusCode.UNKNOWN:
         return status, output
-    # random host is not able to execute the command
-    # Now try to iterate through the list of hosts
-    # in the host group and send the command until
-    # the command is successful
+    #random host is not able to execute the command
+    #Now try to iterate through the list of hosts
+    #in the host group and send the command until
+    #the command is successful
+
+    #No need to send it to host which we already sent
+    list_hosts.remove(host)
     for host in list_hosts:
+        host_address = _getHostAddress(host)
         status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
-                                         host,
+                                         host_address,
                                          timeout=args.timeout) + command)
         if status != utils.PluginStatusCode.UNKNOWN:
             return status, output
