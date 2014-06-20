@@ -28,7 +28,7 @@ from config_generator import GlusterNagiosConfManager
 import server_utils
 import submit_external_command
 from constants import DEFAULT_AUTO_CONFIG_DIR
-
+from constants import NAGIOS_CONFIG_FILE
 
 from config_generator import CHANGE_MODE
 from config_generator import CHANGE_MODE_ADD
@@ -505,6 +505,16 @@ def getRemovedHostsCount(clusterDelta):
             removedHostsCount += 1
     return removedHostsCount
 
+
+def _verifyNagiosConfig():
+    (rc, out, err) = utils.execCmd([server_utils.nagiosCmdPath.cmd, '-v',
+                                    NAGIOS_CONFIG_FILE])
+    if rc == 0:
+        return True
+    else:
+        return False
+
+
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster, args.timeout)
@@ -552,12 +562,16 @@ if __name__ == '__main__':
             # If Nagios is running then try to restart. Otherwise don't do
             # anything.
             if server_utils.isNagiosRunning():
-                confirmation = getConfirmation(
-                    "Do you want to restart Nagios to start monitoring newly "
-                    "discovered entities?", "Yes")
-                if confirmation:
-                    server_utils.restartNagios()
-                    print "Nagios re-started successfully"
+                if _verifyNagiosConfig():
+                    confirmation = getConfirmation(
+                        "Do you want to restart Nagios to start monitoring "
+                        "newly discovered entities?", "Yes")
+                    if confirmation:
+                        server_utils.restartNagios()
+                        print "Nagios re-started successfully"
+                else:
+                    print " CONFIG ERROR! Check your Nagios configuration."
+                    sys.exit(utils.PluginStatusCode.CRITICAL)
             else:
                 print "Start the Nagios service to monitor"
     # auto mode means write the configurations without asking confirmation
@@ -578,5 +592,9 @@ if __name__ == '__main__':
         msg += formatTextForMail(getSummary(clusterDelta))
         sendCustomNotification(args.cluster, msg)
         if server_utils.isNagiosRunning():
-            server_utils.restartNagios()
+            if _verifyNagiosConfig():
+                server_utils.restartNagios()
+            else:
+                print " CONFIG ERROR! Check your Nagios configuration."
+                sys.exit(utils.PluginStatusCode.CRITICAL)
     sys.exit(utils.PluginStatusCode.OK)

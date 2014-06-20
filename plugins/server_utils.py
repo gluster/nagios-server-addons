@@ -24,10 +24,12 @@ from pynag import Model
 from glusternagios import utils
 import submit_external_command
 from constants import NRPE_PATH
+from constants import NAGIOS_PATH
 
 
 serviceCmdPath = utils.CommandPath("service", "/sbin/service", )
 nrpeCmdPath = utils.CommandPath("check_nrpe", NRPE_PATH, )
+nagiosCmdPath = utils.CommandPath("nagios", NAGIOS_PATH, )
 
 
 def restartNagios():
