@@ -114,6 +114,6 @@ def execNRPECommand(host,
     else:
         print "Failed to execute NRPE command '%s' in host '%s' " \
               "\nError : %s" \
-              "Make sure NPRE server in host '%s' is configured to accept " \
+              "Make sure NRPE server in host '%s' is configured to accept " \
               "requests from Nagios server" % (command, host, outputStr, host)
         sys.exit(utils.PluginStatusCode.CRITICAL)
