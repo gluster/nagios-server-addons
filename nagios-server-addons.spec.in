@@ -43,6 +43,7 @@ URL:              http://www.redhat.com
 Vendor:           Red Hat, Inc.
 Source0:          %{name}-%{version}.tar.gz
 BuildRoot:        %{_tmppath}/%{name}-%{version}-root
+BuildArch:        noarch
 BuildRequires:    pyflakes
 BuildRequires:    python-pep8
 BuildRequires:    python-mock
