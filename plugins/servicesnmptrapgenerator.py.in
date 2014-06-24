@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # servicesnmptrapgenerator.py.in -- nagios plugin for generating the
-#SNMP traps on service status change
+# SNMP traps on service status change
 # Copyright (C) 2014 Red Hat Inc
 #
 # This program is free software; you can redistribute it and/or
@@ -86,16 +86,16 @@ def buildandsendsnmptrap(args):
 
 
 def formatargs(args):
-    #convert nSvcNotifyType to enum value
+    # convert nSvcNotifyType to enum value
     svcnotifytype = {'problem': '0',
                      'recovery': '1',
                      'acknowledgement': '2',
                      'flappingstart': '3',
                      'flappingstop': '4'}
     args.nSvcNotifyType = svcnotifytype[args.nSvcNotifyType.lower()]
-    #Add quotes to string parameters to handle
-    #parameters with multiple words separated with
-    #spaces
+    # Add quotes to string parameters to handle
+    # parameters with multiple words separated with
+    # spaces
     args.nHostname = '''"''' + args.nHostname + '''"'''
     args.nSvcDesc = '''"''' + args.nSvcDesc + '''"'''
     args.nSvcGroupName = '''"''' + args.nSvcGroupName + '''"'''

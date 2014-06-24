@@ -14,7 +14,7 @@ def _getListHosts(hostgroup):
     table = json.loads(livestatus.readLiveStatusAsJSON(
         "GET hostgroups\nColumns: members_with_state\n"
         "Filter: name = " + hostgroup + "\n"))[0][0]
-    #Get the only those nodes which are UP
+    # Get the only those nodes which are UP
     for row in table:
         if row[1] == utils.HostStatusCode.UP:
             list_hosts.append(row[0])
@@ -50,10 +50,10 @@ def _getVolGeoRepStatusNRPECommand(volume):
     return ("check_vol_status -a %s %s" % (volume, 'geo-rep'))
 
 
-#This function gets the replica pairs
-#bricks - list of bricks in the volume
-#pair_index - nth pair of replica's needs to be returned
-#rCount - replica count
+# This function gets the replica pairs
+# bricks - list of bricks in the volume
+# pair_index - nth pair of replica's needs to be returned
+# rCount - replica count
 def getReplicaSet(bricks, pair_index, rCount):
     start_index = (pair_index*rCount)-rCount
     return(bricks[start_index:start_index+rCount])
@@ -74,10 +74,10 @@ def _getVolumeStatusOutput(hostgroup, volume):
             "Filter: custom_variable_values >= %s\n"
             "Filter: description ~ Brick - \n"
             % (hostgroup, volume)))
-        #output will be as below:
-        #[[u'Brick - /root/b3', 0, u'10.70.42.246', u'nishanth-rhs-2']]
-        #parse this to find the no of critical/ok bricks and list of
-        #critical bricks
+        # output will be as below:
+        # [[u'Brick - /root/b3', 0, u'10.70.42.246', u'nishanth-rhs-2']]
+        # parse this to find the no of critical/ok bricks and list of
+        # critical bricks
         bricks_ok = 0
         bricks_critical = 0
         brick_list_critical = []
@@ -86,8 +86,8 @@ def _getVolumeStatusOutput(hostgroup, volume):
                 bricks_ok += 1
             elif brick_detail[1] == utils.PluginStatusCode.CRITICAL:
                 bricks_critical += 1
-                #get the critical brick's host uuid if not present
-                #int the list
+                # get the critical brick's host uuid if not present
+                # int the list
                 custom_vars = json.loads(livestatus.readLiveStatusAsJSON(
                     "GET hosts\n"
                     "Columns: custom_variables\n"
@@ -99,11 +99,11 @@ def _getVolumeStatusOutput(hostgroup, volume):
                     brick_detail[0][brick_detail[0].find("/"):]
                 brick_dict['uuid'] = custom_vars[0][0]['HOST_UUID']
                 brick_list_critical.append(brick_dict)
-        #Get volume details
+        # Get volume details
         nrpeStatus, nrpeOut = _executeRandomHost(
             hostgroup, _getVolDetailNRPECommand(volume))
         volInfo = json.loads(nrpeOut)
-        #Get the volume type
+        # Get the volume type
         vol_type = volInfo[volume]['type']
         if bricks_ok == 0 and bricks_critical > 0:
             status = utils.PluginStatusCode.CRITICAL
@@ -132,7 +132,7 @@ def _getVolumeStatusOutput(hostgroup, volume):
                     bricks.append(
                         {'brick': brick['brickaddress'] + ":" +
                             brick['brickpath'], 'uuid': brick['hostUuid']})
-                #check whether the replica is up for the bricks
+                # check whether the replica is up for the bricks
                 # which are down
                 rCount = int(volInfo[volume]['replicaCount'])
                 noOfReplicas = len(bricks)/rCount
@@ -197,7 +197,7 @@ def _executeRandomHost(hostgroup, command):
         output = " UNKNOWN: No hosts(with state UP) found in the cluster"
         return status, output
     host = random.choice(list_hosts)
-    #Get the address of the host
+    # Get the address of the host
     host_address = _getHostAddress(host)
 
     status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
@@ -206,10 +206,10 @@ def _executeRandomHost(hostgroup, command):
 
     if status != utils.PluginStatusCode.UNKNOWN:
         return status, output
-    #random host is not able to execute the command
-    #Now try to iterate through the list of hosts
-    #in the host group and send the command until
-    #the command is successful
+    # random host is not able to execute the command
+    # Now try to iterate through the list of hosts
+    # in the host group and send the command until
+    # the command is successful
     for host in list_hosts:
         status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
                                          host,

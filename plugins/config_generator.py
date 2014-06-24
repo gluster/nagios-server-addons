@@ -50,7 +50,7 @@ class GlusterNagiosConfManager:
     def __init__(self, configDir):
         self.configDir = configDir
 
-    #Create nagios host configuration with the given attributes
+    # Create nagios host configuration with the given attributes
     def createHost(self, hostName, alias, template,
                    address, hostGroups, checkCommand, services, uuid):
         host = {}
@@ -62,8 +62,8 @@ class GlusterNagiosConfManager:
             host['check_command'] = checkCommand
         if hostGroups:
             host['hostgroups'] = hostGroups
-        #Host service is not a field in host configuration. It helps to
-        #aggregate all the host services under the host
+        # Host service is not a field in host configuration. It helps to
+        # aggregate all the host services under the host
         if services:
             host[HOST_SERVICES] = services
         if uuid:
@@ -157,7 +157,7 @@ class GlusterNagiosConfManager:
         service['check_command'] = "gluster_auto_discovery!%s" % (hostIp)
         return service
 
-    #Create all volume related services for the given volume
+    # Create all volume related services for the given volume
     def createrVolumeServices(self, volumes, clusterName):
         volumeServices = []
         for volume in volumes:
@@ -205,7 +205,7 @@ class GlusterNagiosConfManager:
         brickService[NOTES] = "Volume : %s" % (brick['volumeName'])
         return brickService
 
-    #Create all Brick related service here.
+    # Create all Brick related service here.
     def createBrickServices(self, host):
         brickServices = []
         for brick in host['bricks']:
@@ -217,15 +217,15 @@ class GlusterNagiosConfManager:
             brickServices.append(brickService)
         return brickServices
 
-    #Create a host group with the name
+    # Create a host group with the name
     def createHostGroup(self, name):
         return {'hostgroup_name': name, 'alias': name}
 
-    #Create the Nagios configuration model in run time using list and
-    #dictionary
-    #Nagios config model hierarchy
+    # Create the Nagios configuration model in run time using list and
+    # dictionary
+    # Nagios config model hierarchy
     #########################################################################
-    #Hostgroup
+    # Hostgroup
     #  --'_host' ---> List of host configurations in the host group
     #    --'host_services' ----> List of services in the host
     #########################################################################
@@ -242,13 +242,13 @@ class GlusterNagiosConfManager:
                 cluster['name']))
         clusterServices.append(self.createClusterAutoConfigService(
             cluster['name'], cluster['hosts'][0]['hostip']))
-        #Create host config for Gluster cluster with volume related services
+        # Create host config for Gluster cluster with volume related services
         clusterHostConfig = self.createHost(
             cluster['name'], cluster['name'], "gluster-cluster",
             cluster['name'], None, None, clusterServices, None)
         hostsConfigs.append(clusterHostConfig)
-        #Create host config for all hosts in the cluster with brick related
-        #services
+        # Create host config for all hosts in the cluster with brick related
+        # services
         for host in cluster['hosts']:
             if host['status'] == HostStatus.CONNECTED:
                 brickServices = self.createBrickServices(host)
@@ -261,13 +261,13 @@ class GlusterNagiosConfManager:
         hostGroup["_hosts"] = hostsConfigs
         return hostGroup
 
-    #Get the config file name for the given hostname
+    # Get the config file name for the given hostname
     def getCfgFileName(self, hostname):
         return self.configDir + "/" + hostname + ".cfg"
 
-    #Create Nagios config service for the given host group with all hosts.
-    #Host group should contain the delta to be written to the configuration.
-    #Delta will be processed using the change mode.
+    # Create Nagios config service for the given host group with all hosts.
+    # Host group should contain the delta to be written to the configuration.
+    # Delta will be processed using the change mode.
     def writeHostGroup(self, hostgroup):
         changeMode = hostgroup[CHANGE_MODE]
         if changeMode == CHANGE_MODE_ADD:
@@ -277,23 +277,23 @@ class GlusterNagiosConfManager:
             hostgroupModel.set_filename(
                 self.getCfgFileName(hostgroup['hostgroup_name']))
             hostgroupModel.save()
-        #Process all the hosts in the hostgroup. ChangeMode of the hostgroup
-        #will be used to proces the host if there is not changeMode specified
-        #in the host.
+        # Process all the hosts in the hostgroup. ChangeMode of the hostgroup
+        # will be used to proces the host if there is not changeMode specified
+        # in the host.
         if hostgroup['_hosts']:
             self.writeHosts(hostgroup['_hosts'], changeMode)
 
-    #Fill the pynag model with the given values.
-    #'changeMode' and 'host_services' are special fields which are
-    #not meant to be writen to the nagios config, These fields are
-    #used to represent the config model and changes.
+    # Fill the pynag model with the given values.
+    # 'changeMode' and 'host_services' are special fields which are
+    # not meant to be writen to the nagios config, These fields are
+    # used to represent the config model and changes.
     def fillModel(self, model, values):
         for key, value in values.iteritems():
             if key not in [CHANGE_MODE, HOST_SERVICES]:
                 model[key] = value
         return model
 
-    #Write service to nagios config
+    # Write service to nagios config
     def writeService(self, service, hostname):
         if service[CHANGE_MODE] == CHANGE_MODE_ADD:
             serviceModel = Model.Service()
@@ -313,16 +313,17 @@ class GlusterNagiosConfManager:
             self.fillModel(serviceModel, service)
             serviceModel.save()
 
-    #Write all services in the host.
-    #host_services filed contains the list of services to be written to
-    #nagios configuration
+    # Write all services in the host.
+    # host_services filed contains the list of services to be written to
+    # nagios configuration
     def writeHostServices(self, host):
         for service in host[HOST_SERVICES]:
             if service.get(CHANGE_MODE) is None:
                 service[CHANGE_MODE] = host[CHANGE_MODE]
             self.writeService(service, host['host_name'])
 
-    #Write the host configuration with list of services to nagios configuration
+    # Write the host configuration with list of services
+    # to nagios configuration
     def writeHost(self, host):
         if host[CHANGE_MODE] == CHANGE_MODE_REMOVE:
             hostModel = Model.Host.objects.filter(
@@ -345,6 +346,6 @@ class GlusterNagiosConfManager:
                 host[CHANGE_MODE] = chageMode
             self.writeHost(host)
 
-    #Write the hostgroup delta to nagios configuration.
+    # Write the hostgroup delta to nagios configuration.
     def generateConfigFiles(self, delta):
         self.writeHostGroup(delta)

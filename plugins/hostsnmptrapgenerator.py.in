@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # hostsnmptrapgenerator.py.in -- nagios plugin for generating the
-#SNMP traps on host status change
+# SNMP traps on host status change
 # Copyright (C) 2014 Red Hat Inc
 #
 # This program is free software; you can redistribute it and/or
@@ -85,19 +85,19 @@ def parse_input():
 
 
 def formatargs(args):
-    #convert nHostNotifyType to enum value
+    # convert nHostNotifyType to enum value
     hostnotifytype = {'problem': '0',
                       'recovery': '1',
                       'acknowledgement': '2',
                       'flappingstart': '3',
                       'flappingstop': '4'}
     args.nHostNotifyType = hostnotifytype[args.nHostNotifyType.lower()]
-    #convert nHostStateType to enum value
+    # convert nHostStateType to enum value
     hoststatetype = {'hard': '0', 'soft': '1'}
     args.nHostStateType = hoststatetype[args.nHostStateType.lower()]
-    #Add quotes to string parameters to handle
-    #parameters with multiple words separated with
-    #spaces
+    # Add quotes to string parameters to handle
+    # parameters with multiple words separated with
+    # spaces
     args.nHostname = '''"''' + args.nHostname + '''"'''
     args.nHostGroupName = '''"''' + args.nHostGroupName + '''"'''
     args.nHostOutput = '''"''' + args.nHostOutput + '''"'''
