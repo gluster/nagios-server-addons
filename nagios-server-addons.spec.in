@@ -232,6 +232,7 @@ fi
 %attr(-, root, nagios) %{_sysconfdir}/nagios/gluster/snmpmanagers.conf
 %{_sysconfdir}/nagios/gluster/*
 %{_sysconfdir}/sudoers.d/nagios
+%{_sysconfdir}/pnp4nagios/check_commands/check_disk_and_inode.cfg
 %{_sysconfdir}/pnp4nagios/check_commands/check_interfaces.cfg
 /usr/share/snmp/mibs/*
 
