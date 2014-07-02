@@ -229,8 +229,8 @@ fi
 %{_datadir}/nagios/html/pnp4nagios/templates.dist/check_brick_usage.php
 %attr(0755, -, -) %{_libdir}/nagios/plugins/gluster/*
 %attr(0775, root, nagios) %dir %{_sysconfdir}/nagios/gluster
-%attr(-, root, nagios) %{_sysconfdir}/nagios/gluster/snmpmanagers.conf
-%{_sysconfdir}/nagios/gluster/*
+%config(noreplace)  %attr(-, root, nagios) %{_sysconfdir}/nagios/gluster/snmpmanagers.conf
+%config(noreplace) %{_sysconfdir}/nagios/gluster/*
 %{_sysconfdir}/sudoers.d/nagios
 %{_sysconfdir}/pnp4nagios/check_commands/check_disk_and_inode.cfg
 %{_sysconfdir}/pnp4nagios/check_commands/check_interfaces.cfg
