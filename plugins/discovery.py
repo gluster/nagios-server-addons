@@ -530,7 +530,7 @@ if __name__ == '__main__':
     replaceHostNamesWithCurrentName(clusterdata.get('hosts'))
     duplicateHost = _findDuplicateHost(clusterdata.get('hosts'), args.cluster)
     if duplicateHost:
-        print "ERROR: Host '%s' is already being monitored" % duplicateHost
+        print "ERROR: Host name '%s' is already in use" % duplicateHost
         sys.exit(utils.PluginStatusCode.CRITICAL)
 
     configManager = getConfigManager(args)
