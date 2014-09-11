@@ -84,6 +84,15 @@ def getHostGroup(name):
         return None
 
 
+def getUuidToHostConfigDict():
+    hostConfigs = Model.Host.objects.all
+    resultDict = {}
+    for hostConfig in hostConfigs:
+        if hostConfig.get("_HOST_UUID", None) is not None:
+            resultDict[hostConfig.get("_HOST_UUID")] = hostConfig
+    return resultDict
+
+
 def getNRPEBaseCommand(host, timeout=None):
     command = NRPE_PATH + " -H " + host
     if timeout is not None:

@@ -498,6 +498,15 @@ def _findDuplicateHost(hosts, clusterName):
                     return host.get('hostname')
 
 
+# Retain the old hostnames by searching through the host uuid
+def replaceHostNamesWithCurrentName(hosts):
+    hostDict = server_utils.getUuidToHostConfigDict()
+    for host in hosts:
+        configuredHost = hostDict.get(host.get('uuid'))
+        if configuredHost is not None:
+            host['hostname'] = configuredHost['host_name']
+
+
 def getRemovedHostsCount(clusterDelta):
     removedHostsCount = 0
     for host in clusterDelta.get('_hosts', []):
@@ -518,6 +527,7 @@ def _verifyNagiosConfig():
 if __name__ == '__main__':
     args = parse_input()
     clusterdata = discoverCluster(args.hostip, args.cluster, args.timeout)
+    replaceHostNamesWithCurrentName(clusterdata.get('hosts'))
     duplicateHost = _findDuplicateHost(clusterdata.get('hosts'), args.cluster)
     if duplicateHost:
         print "ERROR: Host '%s' is already being monitored" % duplicateHost

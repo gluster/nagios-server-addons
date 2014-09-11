@@ -194,3 +194,22 @@ class TestDiscovery(TestCaseBase):
                              'gluster_auto_discovery!10.70.43.57!10.70.43.57'})
         hostConfig = {HOST_SERVICES: hostServices}
         return hostConfig
+
+    def mockGetUuidToHostConfigDict(self):
+        hostDict = {}
+        hostDict['0001'] = {'host_name': 'old-host1'}
+        hostDict['0002'] = {'host_name': 'old-host2'}
+        hostDict['0003'] = {'host_name': 'old-host3'}
+        return hostDict
+
+    def testReplaceHostNamesWithCurrentName(self):
+        server_utils.getUuidToHostConfigDict = self.mockGetUuidToHostConfigDict
+        clusterData = [{'uuid': '0001', 'hostname': 'new-host1'},
+                       {'uuid': '0002', 'hostname': 'new-host2'},
+                       {'uuid': '0004', 'hostname': 'new-host4'},
+                       {'uuid': '0005', 'hostname': 'new-host5'}]
+        discovery.replaceHostNamesWithCurrentName(clusterData)
+        self.assertEqual(clusterData[0]['hostname'], 'old-host1')
+        self.assertEqual(clusterData[1]['hostname'], 'old-host2')
+        self.assertEqual(clusterData[2]['hostname'], 'new-host4')
+        self.assertEqual(clusterData[3]['hostname'], 'new-host5')
