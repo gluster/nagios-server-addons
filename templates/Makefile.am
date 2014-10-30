@@ -6,6 +6,7 @@ pnp4nagioscheckcommand_DATA = \
 
 pnp4nagiostemplatedir = $(datarootdir)/nagios/html/pnp4nagios/templates.dist
 pnp4nagiostemplate_DATA = \
+	check_cluster_vol_usage.php \
 	check_cpu_multicore.php \
 	check_disk_and_inode.php \
 	check_interfaces.php \
