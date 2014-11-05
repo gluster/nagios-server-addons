@@ -37,18 +37,38 @@ def findClusterStatus(clusterName):
           "Filter: host_name = %s" % ('Volume Status -', clusterName)
     table = livestatus.readLiveStatus(cmd)
     noOfVolumesInCriticalState = 0
+    noOfVolumesInUnknownState = 0
+    noOfVolumesInWarningState = 0
     noOfVolumes = len(table)
     if noOfVolumes == 0:
         print "OK : No Volumes present in the cluster"
         return exitStatus
     for row in table:
-        if len(row) > 0 and row[0] == '2':
-            noOfVolumesInCriticalState += 1
+        if len(row) > 0:
+            if row[0] == '1':
+                noOfVolumesInWarningState += 1
+            elif row[0] == '2':
+                noOfVolumesInCriticalState += 1
+            elif row[0] == '3':
+                noOfVolumesInUnknownState += 1
+
     if noOfVolumesInCriticalState == noOfVolumes:
         print "CRITICAL: All Volumes in the cluster are in Critical State"
         exitStatus = utils.PluginStatusCode.CRITICAL
+    elif noOfVolumesInUnknownState == noOfVolumes:
+        print "CRITICAL: All Volumes in the cluster are in Unknown State"
+        exitStatus = utils.PluginStatusCode.CRITICAL
     elif noOfVolumesInCriticalState > 0:
         print "WARNING : Some Volumes in the cluster are in Critical State"
+        exitStatus = utils.PluginStatusCode.WARNING
+    elif noOfVolumesInUnknownState > 0:
+        print "WARNING : Some Volumes in the cluster are in Unknown State"
+        exitStatus = utils.PluginStatusCode.WARNING
+    elif noOfVolumesInWarningState == noOfVolumes:
+        print "WARNING : All Volumes in the cluster are in Warning State"
+        exitStatus = utils.PluginStatusCode.WARNING
+    elif noOfVolumesInWarningState > 0:
+        print "WARNING : Some Volumes in the cluster are in Warning State"
         exitStatus = utils.PluginStatusCode.WARNING
     else:
         print "OK : None of the Volumes in the cluster are in Critical State"
