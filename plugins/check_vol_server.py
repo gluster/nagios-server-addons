@@ -14,11 +14,22 @@ def _getListHosts(hostgroup):
     table = json.loads(livestatus.readLiveStatusAsJSON(
         "GET hostgroups\nColumns: members_with_state\n"
         "Filter: name = " + hostgroup + "\n"))[0][0]
-    # Get the only those nodes which are UP
+    # Get the only those nodes which are UP and
+    #glusterd service is running
     for row in table:
-        if row[1] == utils.HostStatusCode.UP:
+        if row[1] == utils.HostStatusCode.UP and \
+            _getGlusterdStatus(row[0]) \
+                == utils.PluginStatusCode.OK:
             list_hosts.append(row[0])
     return list_hosts
+
+
+def _getGlusterdStatus(hostname):
+    status = json.loads(livestatus.readLiveStatusAsJSON(
+        "GET services\nColumns: state\n"
+        "Filter: description = Gluster Management\n"
+        "Filter: host_name = " + hostname + "\n"))[0][0]
+    return status
 
 
 def _getHostAddress(host):
@@ -102,6 +113,8 @@ def _getVolumeStatusOutput(hostgroup, volume):
         # Get volume details
         nrpeStatus, nrpeOut = _executeRandomHost(
             hostgroup, _getVolDetailNRPECommand(volume))
+        if nrpeStatus != utils.PluginStatusCode.OK:
+            return utils.PluginStatusCode.UNKNOWN, nrpeOut
         volInfo = json.loads(nrpeOut)
         # Get the volume type
         vol_type = volInfo[volume]['type']
