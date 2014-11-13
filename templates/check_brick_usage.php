@@ -22,7 +22,14 @@
 # set graph labels
 foreach ($this->DS as $KEY=>$VAL) {
   # $VAL['NAME'] = str_replace("_","/",$VAL['NAME']);
-  $ds_name[$KEY] = "Brick Utilization";
+  $ds_name[$KEY] = "Brick Utilization ";
+  $graph_type = $VAL['LABEL'];
+  if ($graph_type == "Virtual" ) {
+    $ds_name[$KEY] .= "(virtual)";
+  }
+  if ($graph_type == "Thin-pool" ) {
+    $ds_name[$KEY] .= "(Thin-pool)";
+  }
   $name[$KEY] = "Brick Path: " . $NAGIOS__SERVICEBRICK_DIR;
 
   # set graph labels
