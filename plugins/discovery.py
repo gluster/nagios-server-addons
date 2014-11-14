@@ -515,6 +515,18 @@ def getRemovedHostsCount(clusterDelta):
     return removedHostsCount
 
 
+def unRegisterHost(hostName):
+    hostConfig = server_utils.getHostConfigByName(hostName)
+    if hostConfig:
+        if hostConfig.get('register') != '0':
+            hostConfig['register'] = 0
+            hostConfig.save()
+            serviceConfigs = server_utils.getServiceConfigByHost(hostName)
+            for serviceConfig in serviceConfigs:
+                serviceConfig['register'] = 0
+                serviceConfig.save()
+
+
 def _verifyNagiosConfig():
     (rc, out, err) = utils.execCmd([server_utils.nagiosCmdPath.cmd, '-v',
                                     NAGIOS_CONFIG_FILE])
@@ -556,19 +568,8 @@ if __name__ == '__main__':
                        args.nagiosServerIP, args.mode, args.timeout)
             print "Cluster configurations synced successfully from host %s" % \
                   (args.hostip)
-            # Rename the configuration file for dummy host from temp_node1.cfg
-            # to temp_node1.cfg.sample as this host is not needed after other
-            # hosts are configured through auto-discovery.
-            dummy_host_config_file = DEFAULT_AUTO_CONFIG_DIR \
-                + '/default/temp_node1.cfg'
-            try:
-                if os.path.exists(dummy_host_config_file):
-                    os.rename(
-                        dummy_host_config_file,
-                        dummy_host_config_file + '.sample'
-                    )
-            except Exception as e:
-                pass
+            #Unregister the temp_node1
+            unRegisterHost("temp_node1")
             # If Nagios is running then try to restart. Otherwise don't do
             # anything.
             if server_utils.isNagiosRunning():

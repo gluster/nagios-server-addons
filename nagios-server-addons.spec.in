@@ -126,6 +126,13 @@ rm -rf %{buildroot}
 NagiosCFGFile="/etc/nagios/nagios.cfg"
 sed -i '/etc\/nagios\/objects\/localhost.cfg/d' $NagiosCFGFile
 
+LocalhostCfgFile="%{_sysconfdir}/nagios/gluster/default/temp_node1.cfg"
+LocalhostCfgFileEdited="%{_sysconfdir}/nagios/gluster/default/temp_node1.cfg.sample"
+if [ -f $LocalhostCfgFileEdited ]; then
+  sed -i '/host_name * temp_node1/a \   register 0' $LocalhostCfgFile
+  rm $LocalhostCfgFileEdited
+fi
+
 if grep -q "#process_performance_data=0" $NagiosCFGFile; then
   sed -i -e 's/#process_performance_data=0/process_performance_data=1/g' $NagiosCFGFile
 elif grep -q "process_performance_data=0" $NagiosCFGFile ; then
