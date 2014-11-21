@@ -1,5 +1,6 @@
 pnp4nagioscheckcommanddir = $(sysconfdir)/pnp4nagios/check_commands
 pnp4nagioscheckcommand_DATA = \
+	check_brick_usage.cfg \
 	check_disk_and_inode.cfg \
 	check_interfaces.cfg \
 	$(NULL)
