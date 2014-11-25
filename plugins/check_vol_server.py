@@ -4,6 +4,7 @@ import json
 import random
 import argparse
 import livestatus
+import time
 
 from glusternagios import utils
 import server_utils
@@ -224,9 +225,14 @@ def _executeRandomHost(hostgroup, command):
     #in the host group and send the command until
     #the command is successful
 
-    #No need to send it to host which we already sent
-    list_hosts.remove(host)
+    #No need to send it to host which we already sent unless volume locked
+    if not output.contains("UNKNOWN: temporary error"):
+        # if volume locked,we can try on same host
+        list_hosts.remove(host)
     for host in list_hosts:
+        if output.contains("UNKNOWN: temporary error"):
+            # volume locked, so wait before trying again
+            time.sleep(2)  # sleep for 2 seconds
         host_address = _getHostAddress(host)
         status, output = execNRPECommand(server_utils.getNRPEBaseCommand(
                                          host_address,
