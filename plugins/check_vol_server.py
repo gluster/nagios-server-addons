@@ -226,11 +226,11 @@ def _executeRandomHost(hostgroup, command):
     #the command is successful
 
     #No need to send it to host which we already sent unless volume locked
-    if not output.contains("UNKNOWN: temporary error"):
+    if not "UNKNOWN: temporary error" in output:
         # if volume locked,we can try on same host
         list_hosts.remove(host)
     for host in list_hosts:
-        if output.contains("UNKNOWN: temporary error"):
+        if "UNKNOWN: temporary error" in output:
             # volume locked, so wait before trying again
             time.sleep(2)  # sleep for 2 seconds
         host_address = _getHostAddress(host)
