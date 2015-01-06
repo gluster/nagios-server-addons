@@ -18,53 +18,44 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-#
-# set graph labels
-$i = 0;
-$k = 0;
+function endsWith($haystack, $needle)
+{
+  return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
+}
+
 foreach ($this->DS as $KEY=>$VAL) {
-  if ($i == 0) {
-    $VAL['NAME'] = str_replace("_","/",$VAL['NAME']);
+  if ($VAL['TEMPLATE'] == "check_brick_usage") {
+    $ds_name[$KEY] = "Brick Utilization";
+  } else {
     $ds_name[$KEY] = "Disk Utilization";
-    $name[$KEY] = "Disk Utilization for mount: " . $VAL['NAME'];
-     
-    # set graph labels
-    $max_limit = $VAL['MAX'];
-    $opt[$KEY]     = "--vertical-label \"%(Total: $max_limit GB) \"  --lower-limit 0 --upper-limit 100 --title \"$name[$KEY]\" ";
-    # Graph Definitions
-    $def[$KEY]     = rrd::def( "var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" ); 
-
-    # disk graph rendering
-    if ($VAL['ACT'] >= $VAL['CRIT']) {
-     $def[$KEY]    .= rrd::line1( "var1", "#008000", "Disk Usage" );
-    } elseif ($VAL['ACT'] >= $VAL['WARN']) {
-      $def[$KEY]    .= rrd::line1( "var1", "#008000", "Disk Usage" );
-    }else {
-      $def[$KEY]    .= rrd::line1( "var1", "#008000", "Disk Usage" );
-    }
-    $def[$KEY] .= rrd::gprint  ("var1", array("LAST","MAX","AVERAGE"), "%3.4lf %S%%");
-    $i = 1;
-    $k = $KEY;
   }
-  else {
-    # inode graph rendering
-    $def[$k]    .= rrd::def( "var2", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" );
-    if ($VAL['ACT'] >= $VAL['CRIT']) {
-      $def[$k]    .= rrd::line1( "var2", "#0000FF", "Inode Usage" );
-    } elseif ($VAL['ACT'] >= $VAL['WARN']) {
-      $def[$k]    .= rrd::line1( "var2", "#0000FF", "Inode Usage" );
-    }else {
-      $def[$k]    .= rrd::line1( "var2", "#0000FF", "Inode Usage" );
+  $name[$KEY] = "Mount Path: ";
+  $graph_type = $VAL['LABEL'];
+  $max_limit = $VAL['MAX'];
+  $unit = "GiB";
+  if (endsWith($graph_type,".inode") || endsWith($graph_type,".thinpool") || endsWith($graph_type,".thinpool-metadata")) {
+    list ($brick,$data_type) = explode (".", $graph_type);
+    $ds_name[$KEY] .= "(";
+    $ds_name[$KEY] .= $data_type;
+    $ds_name[$KEY] .= ")";
+    $name[$KEY] .= $brick ;
+    if ($data_type == "inode"){
+      $unit = "";
     }
-    $def[$k] .= rrd::gprint  ("var2", array("LAST","MAX","AVERAGE"), "%3.4lf %S%%");
-    $i = 0;
-
-    # create warning line and legend
-    $def[$k] .= rrd::line2( $VAL['WARN'], "#FFA500", "Warning\\n");
-
-    # create critical line and legend
-    $def[$k] .= rrd::line2( $VAL['CRIT'], "#FF0000", "Critical\\n");
-    $def[$k] .= rrd::comment ("   \\n");
+  } else {
+    $name[$KEY] .= $graph_type;
+    $ds_name[$KEY] .= "(space)";
   }
+  $opt[$KEY] = "--vertical-label \"%(Total: $max_limit $unit) \"  --lower-limit 0 --upper-limit 100 -r --title \"$name[$KEY]\" ";
+
+  $def[$KEY]     = rrd::def( "var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" );
+
+  $def[$KEY]    .= rrd::area( "var1", "#008000", "Brick Usage" );
+  $def[$KEY] .= rrd::gprint  ("var1", array("LAST","MAX","AVERAGE"), "%.3lf %%");
+
+  $def[$KEY] .= rrd::line2( $VAL['WARN'], "#FFA500", "Warning\\n");
+
+  $def[$KEY] .= rrd::line2( $VAL['CRIT'], "#FF0000", "Critical\\n");
+  $def[$KEY] .= rrd::comment ("   \\n");
 }
 ?>

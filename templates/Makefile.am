@@ -21,3 +21,6 @@ EXTRA_DIST = \
 	$(pnp4nagioscheckcommand_DATA) \
 	$(pnp4nagiostemplate_DATA) \
         $(NULL)
+
+check_brick_usage.php:
+	ln -sf check_disk_and_inode.php check_brick_usage.php
