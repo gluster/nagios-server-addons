@@ -118,6 +118,8 @@ make check
 %install
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
+install -d "%{buildroot}%{_bindir}"
+ln -sf "%{_libdir}/nagios/plugins/gluster/discovery.py" "%{buildroot}%{_bindir}/configure-gluster-nagios"
 
 %clean
 rm -rf %{buildroot}
@@ -252,6 +254,7 @@ fi
 %{_sysconfdir}/pnp4nagios/check_commands/check_disk_and_inode.cfg
 %{_sysconfdir}/pnp4nagios/check_commands/check_interfaces.cfg
 /usr/share/snmp/mibs/*
+%{_bindir}/configure-gluster-nagios
 
 %files tests
 %defattr(-,root,root,-)
