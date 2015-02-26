@@ -50,7 +50,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 
   $def[$KEY]     = rrd::def( "var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE" );
 
-  $def[$KEY]    .= rrd::area( "var1", "#008000", "Brick Usage" );
+  $def[$KEY]    .= rrd::area( "var1", "#008000", "Usage" );
   $def[$KEY] .= rrd::gprint  ("var1", array("LAST","MAX","AVERAGE"), "%.3lf %%");
 
   $def[$KEY] .= rrd::line2( $VAL['WARN'], "#FFA500", "Warning\\n");
