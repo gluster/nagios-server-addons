@@ -113,7 +113,7 @@ class GlusterNagiosConfManager:
         volumeService = {}
         volumeService['host_name'] = clusterName
         volumeService['use'] = 'gluster-service-without-graph'
-        serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
+        serviceDesc = 'Volume Split-brain status - %s' % (volume['name'])
         volumeService['service_description'] = serviceDesc
         volumeService[VOL_NAME] = volume['name']
         checkCommand = 'check_vol_heal_status!%s!%s' % \

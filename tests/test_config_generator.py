@@ -102,10 +102,10 @@ class TestGlusterNagiosConfManager(TestCaseBase):
             serviceCount += 1
 
         if 'REPLICATE' in volume['type']:
-            serviceDesc = 'Volume Self-Heal - %s' % (volume['name'])
+            serviceDesc = 'Volume Split-brain status - %s' % (volume['name'])
             service = self._findServiceInList(serviceList, serviceDesc)
             self.assertNotEqual(service, None,
-                                "Volume Self-Heal service is not created")
+                                "Volume Split-brain service is not created")
             serviceCount += 1
         return serviceCount
 

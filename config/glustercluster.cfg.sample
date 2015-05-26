@@ -127,17 +127,17 @@ define service{
 }
 
 ################################################################################
-# This defines a Volume Self Heal status service
+# This defines a Volume Split-brain status service
 # Edit this sample
 #    host_name = the cluster host previously defined for cluster
-#    service_description = Volume Self-Heal - <volname>
+#    service_description = Volume Split-brain status - <volname>
 #    check_command = check_vol_heal_status!<cluster-hostgroup-name>!<volume-name>
 #    _VOL_NAME = Volume name
 ################################################################################
 define service{
   use                    gluster-service-without-graph
   host_name              test-cluster
-  service_description    Volume Self-Heal - data-vol
+  service_description    Volume Split-brain status - data-vol
   _VOL_NAME              data-vol ; MUST DECLARE the custom var _VOL_NAME
   check_command check_vol_heal_status!test-cluster!data-vol
 }
