@@ -70,13 +70,57 @@ def _getQuorumStatusNRPECommand():
 # bricks - list of bricks in the volume
 # pair_index - nth pair of replica's needs to be returned
 # rCount - replica count
-def getReplicaSet(bricks, pair_index, rCount):
-    start_index = (pair_index*rCount)-rCount
-    return(bricks[start_index:start_index+rCount])
+def getSubVolumeSet(bricks, pair_index, count):
+    start_index = (pair_index*count)-count
+    return(bricks[start_index:start_index+count])
 
 
 def _getVolDetailNRPECommand(volume):
     return ("discover_volume_info -a %s" % (volume))
+
+
+def _getDisperseOrReplicaStatus(vol_type, brick_list_critical,
+                                volInfo, volume):
+    message_string = "replica pair" if (vol_type.find(
+        "REPLICATE") >= 0) else "disperse pair"
+    output = "WARNING: Volume : %s type \n Brick(s) - <%s> " \
+             "is|are down, but %s(s) are up" % \
+             (vol_type, ', '.join(dict['brick']for dict in
+                                  brick_list_critical), message_string)
+    status = utils.PluginStatusCode.WARNING
+    bricks = []
+    for brick in volInfo[volume]['bricks']:
+        bricks.append(
+            {'brick': brick['brickaddress'] + ":" +
+                brick['brickpath'], 'uuid': brick['hostUuid']})
+    # check whether the replica/disperse pair is up for the bricks
+    # which are down
+    count = int(volInfo[volume]['replicaCount']) if (vol_type.find(
+        "REPLICATE") >= 0) else int(volInfo[volume]['disperseCount'])
+    if (vol_type.find("DISPERSE") >= 0):
+        redundancyCount = int(volInfo[volume]['redundancyCount'])
+    noOfPairs = len(bricks)/count
+    for index in range(1, noOfPairs+1):
+        brick_list = getSubVolumeSet(bricks, index, count)
+        noOfBricksDown = 0
+        for brick in brick_list:
+            for brick_critical in brick_list_critical:
+                if brick.get('uuid') == brick_critical.get('uuid')\
+                        and brick.get('brick').split(':')[1] == \
+                        brick_critical.get('brick').split(':')[1]:
+                    noOfBricksDown += 1
+                    break
+        if (noOfBricksDown == count and vol_type.find("REPLICATE") >= 0) or\
+           vol_type.find("DISPERSE") >= 0 and noOfBricksDown > redundancyCount:
+            output = "CRITICAL: Volume : %s type \n Bricks " \
+                     "- <%s> are down, along with one or more " \
+                     "%s(s)" % \
+                     (vol_type,
+                      ', '.join(dict['brick']for dict in
+                                brick_list_critical), message_string)
+            status = utils.PluginStatusCode.CRITICAL
+            break
+    return status, output
 
 
 def _getVolumeStatusOutput(hostgroup, volume):
@@ -139,40 +183,13 @@ def _getVolumeStatusOutput(hostgroup, volume):
                          (vol_type, ', '.join(dict['brick']for dict in
                                               brick_list_critical))
             elif (vol_type == "DISTRIBUTED_REPLICATE" or
-                    vol_type == "REPLICATE"):
-                output = "WARNING: Volume : %s type \n Brick(s) - <%s> " \
-                         "is|are down, but replica pair(s) are up" % \
-                         (vol_type, ', '.join(dict['brick']for dict in
-                                              brick_list_critical))
-                status = utils.PluginStatusCode.WARNING
-                bricks = []
-                for brick in volInfo[volume]['bricks']:
-                    bricks.append(
-                        {'brick': brick['brickaddress'] + ":" +
-                            brick['brickpath'], 'uuid': brick['hostUuid']})
-                # check whether the replica is up for the bricks
-                # which are down
-                rCount = int(volInfo[volume]['replicaCount'])
-                noOfReplicas = len(bricks)/rCount
-                for index in range(1, noOfReplicas+1):
-                    replica_list = getReplicaSet(bricks, index, rCount)
-                    noOfBricksDown = 0
-                    for brick in replica_list:
-                        for brick_critical in brick_list_critical:
-                            if brick.get('uuid') == brick_critical.get('uuid')\
-                                    and brick.get('brick').split(':')[1] == \
-                                    brick_critical.get('brick').split(':')[1]:
-                                noOfBricksDown += 1
-                                break
-                    if noOfBricksDown == rCount:
-                        output = "CRITICAL: Volume : %s type \n Bricks " \
-                                 "- <%s> are down, along with one or more " \
-                                 "replica pairs" % \
-                                 (vol_type,
-                                  ', '.join(dict['brick']for dict in
-                                            brick_list_critical))
-                        status = utils.PluginStatusCode.CRITICAL
-                        break
+                  vol_type == "REPLICATE" or
+                  vol_type == "DISTRIBUTED_DISPERSE" or
+                  vol_type == "DISPERSE"):
+                status, output = _getDisperseOrReplicaStatus(
+                    vol_type,
+                    brick_list_critical,
+                    volInfo, volume)
             else:
                 output = "WARNING: Volume : %s type \n Brick(s) - <%s> " \
                          "is|are down" % (vol_type,
