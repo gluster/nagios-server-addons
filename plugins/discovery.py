@@ -568,7 +568,7 @@ if __name__ == '__main__':
                        args.nagiosServerIP, args.mode, args.timeout)
             print "Cluster configurations synced successfully from host %s" % \
                   (args.hostip)
-            #Unregister the temp_node1
+            # Unregister the temp_node1
             unRegisterHost("temp_node1")
             # If Nagios is running then try to restart. Otherwise don't do
             # anything.

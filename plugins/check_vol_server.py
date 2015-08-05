@@ -16,7 +16,7 @@ def _getListHosts(hostgroup):
         "GET hostgroups\nColumns: members_with_state\n"
         "Filter: name = " + hostgroup + "\n"))[0][0]
     # Get the only those nodes which are UP and
-    #glusterd service is running
+    # glusterd service is running
     for row in table:
         if row[1] == utils.HostStatusCode.UP and \
             _getGlusterdStatus(row[0]) \
@@ -243,13 +243,13 @@ def _executeRandomHost(hostgroup, command):
 
     if status != utils.PluginStatusCode.UNKNOWN:
         return status, output
-    #random host is not able to execute the command
-    #Now try to iterate through the list of hosts
-    #in the host group and send the command until
-    #the command is successful
+    # random host is not able to execute the command
+    # Now try to iterate through the list of hosts
+    # in the host group and send the command until
+    # the command is successful
 
-    #No need to send it to host which we already sent unless volume locked
-    if not "UNKNOWN: temporary error" in output:
+    # No need to send it to host which we already sent unless volume locked
+    if "UNKNOWN: temporary error" not in output:
         # if volume locked,we can try on same host
         list_hosts.remove(host)
     for host in list_hosts:

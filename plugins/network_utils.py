@@ -65,7 +65,7 @@ def validateHostAddress(address):
         return "Please specify host Address"
 
     if IPADDR_RE.match(address):
-        if not address in getNonLoopbackAddresses():
+        if address not in getNonLoopbackAddresses():
             return "Address '%s' can't be mapped to non loopback devices " \
                    "on this host" % address
         else:

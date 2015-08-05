@@ -48,7 +48,7 @@ class TestNetworkUtils(TestCaseBase):
         network_utils.ethtool.get_ipaddr = self.mockGetIpAddr
         network_utils.socket.gethostbyname_ex = self.mockGethostbyname_ex
 
-    #Methods to test validateHostAddress(address)
+    # Methods to test validateHostAddress(address)
     def testValidateHostAddressWithEmptyAddress(self):
         self.setUpMocks()
         validationMsg = network_utils.validateHostAddress(None)
