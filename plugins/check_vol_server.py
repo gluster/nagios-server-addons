@@ -222,17 +222,16 @@ def _getVolumeQuotaStatusOutput(hostgroup, volume):
 
 def _getQuorumStatusOutput(hostgroup):
     # get current volume quorum status
-    table = livestatus.readLiveStatus("GET services\n"
-                                      "Columns: state,plugin_output\n"
+    table = json.loads(livestatus.readLiveStatusAsJSON("GET services\n"
+                                      "Columns: state plugin_output\n"
                                       "Filter: description = "
-                                      "Cluster - Quorum\n"
-                                      "Filter: host_name = %s\n" % hostgroup)
+                                      "Cluster - Quorum Status\n"
+                                      "Filter: host_name = %s\n" % hostgroup))
     servicestatus = utils.PluginStatusCode.UNKNOWN
     pluginoutput = ''
-    if len(table) > 0:
-        servicetab = table[0]
-        servicestatus = servicetab[0]
-        pluginoutput = servicetab[1]
+    for row in table:
+        servicestatus = row[0]
+        pluginoutput = row[1]
     if (int(servicestatus) != utils.PluginStatusCode.CRITICAL):
         return _executeRandomHost(hostgroup, _getQuorumStatusNRPECommand())
     else:
